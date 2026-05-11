@@ -10,7 +10,7 @@ export function LandingPage() {
     <SiteFrame>
       <section className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
         <div className="space-y-6">
-          <span className="inline-flex items-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-1 text-sm font-medium text-[color:var(--muted)]">
+          <span className="inline-flex items-center rounded-full border border-[color:var(--accent-soft-border)] bg-white px-4 py-1 text-sm font-medium text-[color:var(--accent-strong)] shadow-sm">
             Step 2 foundation in progress
           </span>
           <div className="space-y-4">
@@ -18,7 +18,7 @@ export function LandingPage() {
               Operational software for aging-in-place teams that need faster,
               safer decisions.
             </h1>
-            <p className="max-w-2xl text-lg leading-8 text-[color:var(--muted)]">
+            <p className="max-w-2xl text-lg leading-8 text-[color:var(--muted-strong)]">
               {siteConfig.description} The core structure is now in place for
               authentication, client operations, intake scoring, quote
               generation, and reporting.
@@ -27,23 +27,23 @@ export function LandingPage() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               href="#foundation"
-              className="inline-flex items-center justify-center rounded-full bg-[color:var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)]"
+              className="inline-flex items-center justify-center rounded-full bg-[color:var(--navy)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--ink)]"
             >
               View build foundation
             </Link>
             <Link
               href="#architecture"
-              className="inline-flex items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-3 text-sm font-semibold text-foreground transition hover:border-[color:var(--accent)]"
+              className="inline-flex items-center justify-center rounded-full border border-[color:var(--navy-soft-border)] bg-white px-6 py-3 text-sm font-semibold text-[color:var(--navy)] transition hover:border-[color:var(--accent)] hover:text-[color:var(--navy-strong)]"
             >
               Review architecture
             </Link>
           </div>
         </div>
 
-        <div className="surface accent-ring rounded-[2rem] p-6 sm:p-8">
+        <div className="navy-panel accent-ring rounded-[2rem] p-6 sm:p-8">
           <div className="space-y-5">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.24em] text-[color:var(--muted)]">
+              <p className="text-sm font-medium uppercase tracking-[0.24em] text-[color:var(--accent)]">
                 Runtime snapshot
               </p>
               <h2 className="mt-3 text-2xl font-semibold">
@@ -51,18 +51,18 @@ export function LandingPage() {
               </h2>
             </div>
             <dl className="grid gap-4 sm:grid-cols-2">
-              <div className="surface-strong rounded-3xl p-4">
-                <dt className="text-sm text-[color:var(--muted)]">Base URL</dt>
-                <dd className="mt-2 text-sm font-medium">{env.appUrl}</dd>
+              <div className="rounded-3xl border border-white/12 bg-white/8 p-4">
+                <dt className="text-sm text-white/70">Base URL</dt>
+                <dd className="mt-2 text-sm font-medium text-white">{env.appUrl}</dd>
               </div>
-              <div className="surface-strong rounded-3xl p-4">
-                <dt className="text-sm text-[color:var(--muted)]">Public nav</dt>
-                <dd className="mt-2 text-sm font-medium">
+              <div className="rounded-3xl border border-white/12 bg-white/8 p-4">
+                <dt className="text-sm text-white/70">Public nav</dt>
+                <dd className="mt-2 text-sm font-medium text-white">
                   {siteConfig.publicNavigation.length} routes scaffolded
                 </dd>
               </div>
             </dl>
-            <p className="text-sm leading-7 text-[color:var(--muted)]">
+            <p className="text-sm leading-7 text-white/76">
               This page is intentionally lightweight. The detailed marketing site,
               auth flows, and dashboard shell come in the next phases without
               reworking the layout foundation.
@@ -79,9 +79,9 @@ export function LandingPage() {
       >
         <div className="grid gap-4 md:grid-cols-3">
           {foundationalTracks.map((track) => (
-            <article key={track.title} className="surface rounded-[1.75rem] p-6">
+            <article key={track.title} className="surface navy-outline rounded-[1.75rem] p-6">
               <h3 className="text-xl font-semibold">{track.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-[color:var(--muted)]">
+              <p className="mt-3 text-sm leading-7 text-[color:var(--muted-strong)]">
                 {track.description}
               </p>
             </article>
@@ -97,12 +97,12 @@ export function LandingPage() {
       >
         <div className="grid gap-4 lg:grid-cols-2">
           {siteConfig.dashboardNavigation.map((item) => (
-            <div key={item.label} className="surface-strong rounded-[1.5rem] p-5">
+            <div key={item.label} className="surface-strong navy-outline rounded-[1.5rem] p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">
                 {item.href}
               </p>
               <h3 className="mt-2 text-lg font-semibold">{item.label}</h3>
-              <p className="mt-2 text-sm leading-7 text-[color:var(--muted)]">
+              <p className="mt-2 text-sm leading-7 text-[color:var(--muted-strong)]">
                 {item.description}
               </p>
             </div>

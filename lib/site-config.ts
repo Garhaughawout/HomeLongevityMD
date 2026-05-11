@@ -48,6 +48,11 @@ export const dashboardNavigation: ReadonlyArray<AppNavItem> = [
     href: "/activity",
     description: "Audit trail for internal actions, notes, status changes, and workflows.",
   },
+  {
+    label: "Docs",
+    href: "/dashboard/docs",
+    description: "Internal reference for routes, APIs, and implementation surfaces.",
+  },
 ];
 
 export const siteConfig: SiteConfig = {
