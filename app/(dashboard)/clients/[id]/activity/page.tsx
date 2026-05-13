@@ -1,19 +1,21 @@
-import { EmptyState } from "@/components/ui/empty-state";
+import { notFound } from "next/navigation";
+import { getClientById } from "@/services/clients";
+import { getActivityByClientId } from "@/services/activity";
+import { ActivityFeed } from "@/features/clients/components/activity-feed";
 
-function ActivityIcon() {
-  return (
-    <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-8 w-8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
+type Props = { params: { id: string } };
 
-export default function ClientActivityPage() {
+export default async function ClientActivityPage({ params }: Props) {
+  const [client, events] = await Promise.all([
+    getClientById(params.id),
+    getActivityByClientId(params.id),
+  ]);
+  if (!client) notFound();
+
   return (
-    <EmptyState
-      icon={<ActivityIcon />}
-      title="No activity yet"
-      description="Client-scoped activity events will appear here as actions are taken — intake saves, assessment runs, quote generation, note changes, and status updates."
+    <ActivityFeed
+      events={events}
+      emptyMessage="No activity recorded for this client yet. Actions like intake saves, assessments, quotes, and notes will appear here."
     />
   );
 }

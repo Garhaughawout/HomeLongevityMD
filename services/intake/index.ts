@@ -5,6 +5,20 @@ import type { IntakeSectionKey } from "@/types/domain";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
+export async function getIntakeById(
+  intakeId: string,
+): Promise<ClientIntakeRow | null> {
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("client_intake")
+    .select("*")
+    .eq("id", intakeId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 /**
  * Returns the most recent intake record for a client (any status).
  * Returns null if no intake exists yet.

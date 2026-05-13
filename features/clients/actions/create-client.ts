@@ -14,8 +14,19 @@ const createClientSchema = z.object({
   date_of_birth: z
     .string()
     .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format")
-    .or(z.literal(""))
+    .transform((val) => {
+      if (!val) return val;
+      // Accept MM/DD/YYYY and convert to YYYY-MM-DD
+      const mdyMatch = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (mdyMatch) {
+        const [, m, d, y] = mdyMatch;
+        return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+      }
+      return val;
+    })
+    .pipe(
+      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter date as MM/DD/YYYY").or(z.literal("")).optional()
+    )
     .optional(),
   address_line1: z.string().trim().max(200).or(z.literal("")).optional(),
   address_line2: z.string().trim().max(200).or(z.literal("")).optional(),
@@ -80,6 +91,7 @@ export async function createClientAction(
     redirect(`/clients/${client.id}`);
   } catch (err: unknown) {
     if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) throw err;
-    return { globalError: "Failed to create client. Please try again." };
+    const msg = err instanceof Error ? err.message : String(err);
+    return { globalError: `Failed to create client: ${msg}` };
   }
 }

@@ -113,8 +113,9 @@ export function AddClientForm({ onCancel }: AddClientFormProps) {
         <Field
           label="Date of birth"
           name="date_of_birth"
-          type="date"
-          hint="YYYY-MM-DD"
+          type="text"
+          placeholder="MM/DD/YYYY"
+          hint="e.g. 06/15/1952"
           errors={state.errors?.date_of_birth}
         />
       </fieldset>

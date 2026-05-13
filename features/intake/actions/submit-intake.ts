@@ -5,7 +5,10 @@ import {
   submitIntake,
   createIntake,
   getLatestIntakeByClientId,
+  getIntakeById,
 } from "@/services/intake";
+import { scoreIntake } from "@/services/scoring";
+import { persistAssessment } from "@/services/assessments";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -19,7 +22,18 @@ export async function submitIntakeAction(
 ): Promise<SubmitIntakeResult> {
   try {
     const user = await requireAuthenticatedUser();
-    await submitIntake(intakeId, user.id);
+
+    // 1. Fetch the draft intake (need section data for scoring)
+    const intake = await getIntakeById(intakeId);
+    if (!intake) throw new Error("Intake not found.");
+
+    // 2. Mark as submitted (locks the record)
+    const submitted = await submitIntake(intakeId, user.id);
+
+    // 3. Score the submitted intake and persist the assessment
+    const scoring = scoreIntake(submitted);
+    await persistAssessment(submitted.client_id, intakeId, scoring, user.id);
+
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Submit failed. Please try again.";

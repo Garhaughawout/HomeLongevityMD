@@ -1,0 +1,78 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { requireAuthenticatedUser } from "@/services/auth/session";
+import { createQuote, updateQuoteStatus } from "@/services/quotes";
+
+const createQuoteSchema = z.object({
+  base_monthly_rate: z.coerce.number().positive("Rate must be a positive number"),
+  risk_multiplier: z.coerce.number().min(1, "Multiplier must be ≥ 1.0").default(1.0),
+  services_included: z.string().trim().optional(),
+  valid_until: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format")
+    .or(z.literal(""))
+    .optional(),
+  assessment_id: z.string().uuid().or(z.literal("")).optional(),
+});
+
+export type CreateQuoteFormState = {
+  errors?: Partial<Record<keyof z.infer<typeof createQuoteSchema>, string[]>>;
+  globalError?: string;
+};
+
+export async function createQuoteAction(
+  clientId: string,
+  _prev: CreateQuoteFormState,
+  formData: FormData,
+): Promise<CreateQuoteFormState> {
+  const user = await requireAuthenticatedUser();
+
+  const parsed = createQuoteSchema.safeParse({
+    base_monthly_rate: formData.get("base_monthly_rate"),
+    risk_multiplier: formData.get("risk_multiplier") || 1.0,
+    services_included: formData.get("services_included"),
+    valid_until: formData.get("valid_until"),
+    assessment_id: formData.get("assessment_id"),
+  });
+
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  const services = parsed.data.services_included
+    ? parsed.data.services_included
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : undefined;
+
+  try {
+    await createQuote({
+      clientId,
+      assessmentId: parsed.data.assessment_id || undefined,
+      baseMonthlyRate: parsed.data.base_monthly_rate,
+      riskMultiplier: parsed.data.risk_multiplier,
+      servicesIncluded: services,
+      validUntil: parsed.data.valid_until || undefined,
+      userId: user.id,
+    });
+  } catch {
+    return { globalError: "Failed to create quote. Please try again." };
+  }
+
+  revalidatePath(`/clients/${clientId}/quotes`);
+  return {};
+}
+
+export async function updateQuoteStatusAction(
+  clientId: string,
+  quoteId: string,
+  status: "draft" | "sent" | "accepted" | "declined" | "expired",
+): Promise<void> {
+  await requireAuthenticatedUser();
+  await updateQuoteStatus(quoteId, status);
+  revalidatePath(`/clients/${clientId}/quotes`);
+}

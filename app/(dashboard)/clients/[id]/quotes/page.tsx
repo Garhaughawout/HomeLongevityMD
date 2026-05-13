@@ -1,19 +1,18 @@
-import { EmptyState } from "@/components/ui/empty-state";
+import { notFound } from "next/navigation";
+import { getClientById } from "@/services/clients";
+import { getQuotesByClientId } from "@/services/quotes";
+import { getAssessmentsByClientId } from "@/services/assessments";
+import { QuotesList } from "@/features/clients/components/quotes-list";
 
-function QuoteIcon() {
-  return (
-    <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-8 w-8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  );
-}
+type Props = { params: { id: string } };
 
-export default function ClientQuotesPage() {
-  return (
-    <EmptyState
-      icon={<QuoteIcon />}
-      title="No quotes yet"
-      description="Quotes are generated from a risk assessment. Complete an intake and assessment first; quote generation arrives in Phase 7."
-    />
-  );
+export default async function ClientQuotesPage({ params }: Props) {
+  const [client, quotes, assessments] = await Promise.all([
+    getClientById(params.id),
+    getQuotesByClientId(params.id),
+    getAssessmentsByClientId(params.id),
+  ]);
+  if (!client) notFound();
+
+  return <QuotesList clientId={client.id} initialQuotes={quotes} assessments={assessments} />;
 }
