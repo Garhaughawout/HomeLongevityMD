@@ -51,8 +51,8 @@ export const pageReference: ReadonlyArray<InternalDocEntry> = [
   {
     path: "/clients/[id]/intake",
     access: "authenticated",
-    purpose: "Client intake tab — placeholder shell; multi-step wizard arrives in Phase 5.",
-    notes: "Will capture 6 structured domain sections persisted as JSONB to client_intake.",
+    purpose: "Multi-step intake wizard based on the OT HOME FAST + SAFER-HOME hybrid template. 7 clinical sections: Home Environment, Mobility & Function, ADLs & IADLs, Cognitive & Safety, Fall Risk, Caregiver Support, and Physician Review.",
+    notes: "8-step wizard (7 data sections + review/submit). Each section autosaves to JSONB via server action. Supports draft → submitted lifecycle with versioned revisions.",
   },
   {
     path: "/clients/[id]/assessments",

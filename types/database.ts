@@ -95,6 +95,7 @@ export type Database = {
           home_safety: Json | null
           id: string
           mobility: Json | null
+          physician_review: Json | null
           status: string
           submitted_at: string | null
           submitted_by: string | null
@@ -112,6 +113,7 @@ export type Database = {
           home_safety?: Json | null
           id?: string
           mobility?: Json | null
+          physician_review?: Json | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
@@ -129,6 +131,7 @@ export type Database = {
           home_safety?: Json | null
           id?: string
           mobility?: Json | null
+          physician_review?: Json | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null

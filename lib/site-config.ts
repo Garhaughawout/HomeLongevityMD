@@ -11,14 +11,19 @@ export type SiteConfig = {
 
 export const publicNavigation: ReadonlyArray<AppNavItem> = [
   {
-    label: "Foundation",
-    href: "#foundation",
-    description: "Scaffolded shared styles, layout primitives, and route groups.",
+    label: "Services",
+    href: "#services",
+    description: "Functional home safety evaluations, fall risk assessments, and aging-in-place planning.",
   },
   {
-    label: "Architecture",
-    href: "#architecture",
-    description: "Route targets for CRM, intake, quotes, and activity workflows.",
+    label: "Why Us",
+    href: "#why-us",
+    description: "The financial and human cost of waiting for a crisis — and how we help.",
+  },
+  {
+    label: "Contact",
+    href: "#contact",
+    description: "Get in touch with HomeLongevityMD.",
   },
 ];
 
@@ -58,7 +63,7 @@ export const dashboardNavigation: ReadonlyArray<AppNavItem> = [
 export const siteConfig: SiteConfig = {
   name: env.appName,
   description:
-    "A lightweight operational platform for aging-in-place providers spanning public marketing, client workflows, intake assessment, quotes, and operational visibility.",
+    "Physician-led functional home assessments helping older adults safely age in place while giving families medically-guided housing decisions.",
   url: env.appUrl,
   publicNavigation,
   dashboardNavigation,

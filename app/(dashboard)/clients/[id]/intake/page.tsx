@@ -1,19 +1,51 @@
-import { EmptyState } from "@/components/ui/empty-state";
+import { notFound } from "next/navigation";
+import { getClientById } from "@/services/clients";
+import { getLatestIntakeByClientId } from "@/services/intake";
+import { IntakeWizard } from "@/features/intake/components/intake-wizard";
+import { StartRevisionButton } from "@/features/intake/components/start-revision-button";
 
-function IntakeIcon() {
+type Props = { params: { id: string } };
+
+export default async function ClientIntakePage({ params }: Props) {
+  const [client, intake] = await Promise.all([
+    getClientById(params.id),
+    getLatestIntakeByClientId(params.id),
+  ]);
+
+  if (!client) notFound();
+
+  // Submitted → read-only view with option to start a revision
+  if (intake?.status === "submitted") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-[color:var(--foreground)]">
+              Intake Submitted
+            </h2>
+            <p className="text-sm text-[color:var(--muted)]">
+              Version {intake.version} · Submitted{" "}
+              {intake.submitted_at
+                ? new Date(intake.submitted_at).toLocaleDateString()
+                : ""}
+            </p>
+          </div>
+          <StartRevisionButton clientId={client.id} />
+        </div>
+
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          This intake is locked. Start a revision to make corrections or update the assessment.
+          The scoring engine will use the submitted record in Phase 10.
+        </div>
+      </div>
+    );
+  }
+
+  // Draft or no intake → show wizard (creates on first save)
   return (
-    <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-8 w-8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-    </svg>
+    <div>
+      <IntakeWizard client={client} intake={intake} />
+    </div>
   );
 }
 
-export default function ClientIntakePage() {
-  return (
-    <EmptyState
-      icon={<IntakeIcon />}
-      title="No intake yet"
-      description="The multi-step intake wizard arrives in Phase 5. Start an intake to capture home safety, mobility, ADLs, cognition, fall risk, and caregiver support."
-    />
-  );
-}

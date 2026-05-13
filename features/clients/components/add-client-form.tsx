@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useRef } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { createClientAction, type CreateClientFormState } from "@/features/clients/actions/create-client";
 
 const initialState: CreateClientFormState = {};
@@ -46,12 +47,35 @@ type AddClientFormProps = {
   onCancel: () => void;
 };
 
+function FormActions({ onCancel }: { onCancel: () => void }) {
+  const { pending } = useFormStatus();
+  return (
+    <div className="flex items-center justify-end gap-3 border-t border-[color:var(--border)] pt-5">
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={pending}
+        className="rounded-full border border-[color:var(--border)] px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)] disabled:opacity-50"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-full bg-[color:var(--accent)] px-5 py-2 text-sm font-semibold text-[color:var(--ink)] transition hover:opacity-90 disabled:opacity-50"
+      >
+        {pending ? "Adding\u2026" : "Add client"}
+      </button>
+    </div>
+  );
+}
+
 export function AddClientForm({ onCancel }: AddClientFormProps) {
-  const [state, action, isPending] = useActionState(createClientAction, initialState);
+  const [state, formAction] = useFormState(createClientAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <form ref={formRef} action={action} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       {state.globalError && (
         <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {state.globalError}
@@ -128,23 +152,7 @@ export function AddClientForm({ onCancel }: AddClientFormProps) {
       </fieldset>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-3 border-t border-[color:var(--border)] pt-5">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isPending}
-          className="rounded-full border border-[color:var(--border)] px-5 py-2 text-sm font-medium text-[color:var(--muted)] transition hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)] disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-full bg-[color:var(--accent)] px-5 py-2 text-sm font-semibold text-[color:var(--ink)] transition hover:opacity-90 disabled:opacity-50"
-        >
-          {isPending ? "Adding…" : "Add client"}
-        </button>
-      </div>
+      <FormActions onCancel={onCancel} />
     </form>
   );
 }

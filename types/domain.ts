@@ -34,7 +34,8 @@ export type IntakeSectionKey =
   | "adls_iadls"
   | "cognition"
   | "fall_risk"
-  | "caregiver_support";
+  | "caregiver_support"
+  | "physician_review";
 
 export const INTAKE_SECTIONS = [
   "home_safety",
@@ -43,15 +44,17 @@ export const INTAKE_SECTIONS = [
   "cognition",
   "fall_risk",
   "caregiver_support",
+  "physician_review",
 ] as const satisfies ReadonlyArray<IntakeSectionKey>;
 
 export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
-  home_safety: "Home Safety",
-  mobility: "Mobility",
-  adls_iadls: "ADLs / IADLs",
-  cognition: "Cognition",
+  home_safety: "Home Environment",
+  mobility: "Mobility & Function",
+  adls_iadls: "ADLs & IADLs",
+  cognition: "Cognitive & Safety",
   fall_risk: "Fall Risk",
   caregiver_support: "Caregiver Support",
+  physician_review: "Physician Review",
 };
 
 // ── Risk assessments ──────────────────────────────────────────────────────────
