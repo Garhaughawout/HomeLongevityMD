@@ -244,11 +244,11 @@ export type Database = {
 				Row: {
 					accepted_at: string | null;
 					assessment_id: string | null;
-					base_monthly_rate: number;
+					base_plan_fee: number;
 					client_id: string;
 					created_at: string;
 					created_by: string | null;
-					final_monthly_rate: number;
+					plan_fee: number;
 					id: string;
 					pricing_details: Json | null;
 					risk_multiplier: number;
@@ -262,11 +262,11 @@ export type Database = {
 				Insert: {
 					accepted_at?: string | null;
 					assessment_id?: string | null;
-					base_monthly_rate: number;
+					base_plan_fee: number;
 					client_id: string;
 					created_at?: string;
 					created_by?: string | null;
-					final_monthly_rate: number;
+					plan_fee: number;
 					id?: string;
 					pricing_details?: Json | null;
 					risk_multiplier?: number;
@@ -280,11 +280,11 @@ export type Database = {
 				Update: {
 					accepted_at?: string | null;
 					assessment_id?: string | null;
-					base_monthly_rate?: number;
+					base_plan_fee?: number;
 					client_id?: string;
 					created_at?: string;
 					created_by?: string | null;
-					final_monthly_rate?: number;
+					plan_fee?: number;
 					id?: string;
 					pricing_details?: Json | null;
 					risk_multiplier?: number;

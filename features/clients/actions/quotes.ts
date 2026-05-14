@@ -10,9 +10,7 @@ import {
 } from "@/services/quotes";
 
 const createQuoteSchema = z.object({
-	base_monthly_rate: z.coerce
-		.number()
-		.positive("Rate must be a positive number"),
+	base_plan_fee: z.coerce.number().positive("Fee must be a positive number"),
 	risk_multiplier: z.coerce
 		.number()
 		.min(1, "Multiplier must be ≥ 1.0")
@@ -41,7 +39,7 @@ export async function createQuoteAction(
 	const user = await requireAuthenticatedUser();
 
 	const parsed = createQuoteSchema.safeParse({
-		base_monthly_rate: formData.get("base_monthly_rate"),
+		base_plan_fee: formData.get("base_plan_fee"),
 		risk_multiplier: formData.get("risk_multiplier") || 1.0,
 		services_included: formData.get("services_included"),
 		valid_until: formData.get("valid_until"),
@@ -63,7 +61,7 @@ export async function createQuoteAction(
 		await createQuote({
 			clientId,
 			assessmentId: parsed.data.assessment_id || undefined,
-			baseMonthlyRate: parsed.data.base_monthly_rate,
+			basePlanFee: parsed.data.base_plan_fee,
 			riskMultiplier: parsed.data.risk_multiplier,
 			servicesIncluded: services,
 			validUntil: parsed.data.valid_until || undefined,

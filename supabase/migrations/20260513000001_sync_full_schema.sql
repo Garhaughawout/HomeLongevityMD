@@ -125,9 +125,9 @@ create table public.quotes (
   version             int           not null default 1,
   status              text          not null default 'draft'
                         check (status in ('draft','sent','accepted','declined','expired')),
-  base_monthly_rate   numeric(10,2) not null check (base_monthly_rate  >= 0),
+  base_plan_fee       numeric(10,2) not null check (base_plan_fee  >= 0),
   risk_multiplier     numeric(5,4)  not null default 1.0000 check (risk_multiplier >= 1.0),
-  final_monthly_rate  numeric(10,2) not null check (final_monthly_rate >= 0),
+  plan_fee            numeric(10,2) not null check (plan_fee >= 0),
   services_included   jsonb,
   pricing_details     jsonb,
   valid_until         date,

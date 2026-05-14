@@ -18,7 +18,7 @@ export async function getQuotesByClientId(
 export type CreateQuoteInput = {
 	clientId: string;
 	assessmentId?: string;
-	baseMonthlyRate: number;
+	basePlanFee: number;
 	riskMultiplier?: number;
 	servicesIncluded?: string[];
 	validUntil?: string;
@@ -28,8 +28,7 @@ export type CreateQuoteInput = {
 export async function createQuote(input: CreateQuoteInput): Promise<QuoteRow> {
 	const supabase = createServerSupabaseClient();
 	const multiplier = input.riskMultiplier ?? 1.0;
-	const finalRate =
-		Math.round(input.baseMonthlyRate * multiplier * 100) / 100;
+	const finalFee = Math.round(input.basePlanFee * multiplier * 100) / 100;
 
 	// Get current max version for this client
 	const { data: existing } = await supabase
@@ -49,9 +48,9 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRow> {
 			assessment_id: input.assessmentId ?? null,
 			version,
 			status: "draft",
-			base_monthly_rate: input.baseMonthlyRate,
+			base_plan_fee: input.basePlanFee,
 			risk_multiplier: multiplier,
-			final_monthly_rate: finalRate,
+			plan_fee: finalFee,
 			services_included: input.servicesIncluded ?? null,
 			valid_until: input.validUntil ?? null,
 			created_by: input.userId,
@@ -112,9 +111,9 @@ export async function regenerateQuote(
 			assessment_id: source.assessment_id,
 			version: nextVersion,
 			status: "draft",
-			base_monthly_rate: source.base_monthly_rate,
+			base_plan_fee: source.base_plan_fee,
 			risk_multiplier: source.risk_multiplier,
-			final_monthly_rate: source.final_monthly_rate,
+			plan_fee: source.plan_fee,
 			services_included: source.services_included,
 			pricing_details: source.pricing_details,
 			valid_until: source.valid_until,

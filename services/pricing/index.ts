@@ -17,9 +17,9 @@ export const RISK_MULTIPLIERS: Record<string, number> = {
 	unsafe_independent: 1.75,
 };
 
-// ── Default base rate ($USD / month) ─────────────────────────────────────────
-// Represents the starting rate for a standard care package before risk loading.
-export const DEFAULT_BASE_MONTHLY_RATE = 4500;
+// ── Default base plan fee ($USD, one-time) ───────────────────────────────────
+// Starting fee for a standard plan before risk loading.
+export const DEFAULT_BASE_PLAN_FEE = 4500;
 
 // ── Service catalog ───────────────────────────────────────────────────────────
 
@@ -76,19 +76,19 @@ export function suggestServices(assessment: RiskAssessmentRow): string[] {
 // ── Public entry point ────────────────────────────────────────────────────────
 
 export interface QuoteSuggestion {
-	base_monthly_rate: number;
+	base_plan_fee: number;
 	risk_multiplier: number;
-	final_monthly_rate: number;
+	plan_fee: number;
 	suggested_services: string[];
 }
 
 export function suggestQuote(assessment: RiskAssessmentRow): QuoteSuggestion {
 	const multiplier = RISK_MULTIPLIERS[assessment.risk_category] ?? 1.0;
-	const base = DEFAULT_BASE_MONTHLY_RATE;
+	const base = DEFAULT_BASE_PLAN_FEE;
 	return {
-		base_monthly_rate: base,
+		base_plan_fee: base,
 		risk_multiplier: multiplier,
-		final_monthly_rate: Math.round(base * multiplier * 100) / 100,
+		plan_fee: Math.round(base * multiplier * 100) / 100,
 		suggested_services: suggestServices(assessment),
 	};
 }

@@ -9,7 +9,7 @@ import {
 	type CreateQuoteFormState,
 } from "@/features/clients/actions/quotes";
 import type { QuoteRow, RiskAssessmentRow } from "@/types/supabase";
-import { suggestQuote, DEFAULT_BASE_MONTHLY_RATE } from "@/services/pricing";
+import { suggestQuote, DEFAULT_BASE_PLAN_FEE } from "@/services/pricing";
 
 // -- Helpers ------------------------------------------------------------------
 
@@ -94,13 +94,10 @@ function QuoteRow_({ quote, clientId }: { quote: QuoteRow; clientId: string }) {
 						className="text-2xl font-bold tracking-tight"
 						style={{ color: "var(--ink)" }}
 					>
-						{formatCurrency(quote.final_monthly_rate)}
-						<span className="text-sm font-normal text-[color:var(--muted)]">
-							/mo
-						</span>
+						{formatCurrency(quote.plan_fee)}
 					</p>
 					<p className="text-xs" style={{ color: "var(--muted)" }}>
-						Base {formatCurrency(quote.base_monthly_rate)} ·
+						Base {formatCurrency(quote.base_plan_fee)} ·
 						Multiplier {Number(quote.risk_multiplier).toFixed(2)}x ·
 						Valid until {formatDate(quote.valid_until)}
 					</p>
@@ -192,9 +189,7 @@ function CreateQuoteForm({
 	const [selectedAssessmentId, setSelectedAssessmentId] = useState(
 		defaultAssessmentId ?? ""
 	);
-	const [baseRate, setBaseRate] = useState(
-		DEFAULT_BASE_MONTHLY_RATE.toString()
-	);
+	const [baseRate, setBaseRate] = useState(DEFAULT_BASE_PLAN_FEE.toString());
 	const [multiplier, setMultiplier] = useState("1.00");
 	const [services, setServices] = useState("");
 
@@ -212,7 +207,7 @@ function CreateQuoteForm({
 
 	function applyAssessmentSuggestion(a: RiskAssessmentRow) {
 		const s = suggestQuote(a);
-		setBaseRate(s.base_monthly_rate.toFixed(2));
+		setBaseRate(s.base_plan_fee.toFixed(2));
 		setMultiplier(s.risk_multiplier.toFixed(2));
 		setServices(s.suggested_services.join("\n"));
 	}
@@ -224,7 +219,7 @@ function CreateQuoteForm({
 		if (a) {
 			applyAssessmentSuggestion(a);
 		} else {
-			setBaseRate(DEFAULT_BASE_MONTHLY_RATE.toString());
+			setBaseRate(DEFAULT_BASE_PLAN_FEE.toString());
 			setMultiplier("1.00");
 			setServices("");
 		}
@@ -289,7 +284,7 @@ function CreateQuoteForm({
 								className="mt-1 text-xs"
 								style={{ color: "var(--accent)" }}
 							>
-								Rate and services auto-filled from selected
+								Plan fee and services auto-filled from selected
 								assessment.
 							</p>
 						)}
@@ -302,10 +297,10 @@ function CreateQuoteForm({
 							className="block text-xs font-medium mb-1"
 							style={{ color: "var(--muted-strong)" }}
 						>
-							Base Monthly Rate ($) *
+							Base Plan Fee ($) *
 						</label>
 						<input
-							name="base_monthly_rate"
+							name="base_plan_fee"
 							type="number"
 							step="0.01"
 							min="0"
@@ -319,9 +314,9 @@ function CreateQuoteForm({
 								backgroundColor: "var(--surface-strong)",
 							}}
 						/>
-						{state.errors?.base_monthly_rate && (
+						{state.errors?.base_plan_fee && (
 							<p className="mt-1 text-xs text-red-600">
-								{state.errors.base_monthly_rate[0]}
+								{state.errors.base_plan_fee[0]}
 							</p>
 						)}
 					</div>
@@ -350,7 +345,7 @@ function CreateQuoteForm({
 							className="mt-1 text-xs"
 							style={{ color: "var(--muted)" }}
 						>
-							Final: {formatCurrency(finalRate)}/mo
+							Plan Fee: {formatCurrency(finalRate)}
 						</p>
 					</div>
 					<div>
