@@ -6,17 +6,17 @@ import type { IntakeSectionKey } from "@/types/domain";
 // ── Queries ───────────────────────────────────────────────────────────────────
 
 export async function getIntakeById(
-  intakeId: string,
+	intakeId: string
 ): Promise<ClientIntakeRow | null> {
-  const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("client_intake")
-    .select("*")
-    .eq("id", intakeId)
-    .maybeSingle();
+	const supabase = createServerSupabaseClient();
+	const { data, error } = await supabase
+		.from("client_intake")
+		.select("*")
+		.eq("id", intakeId)
+		.maybeSingle();
 
-  if (error) throw new Error(error.message);
-  return data;
+	if (error) throw new Error(error.message);
+	return data;
 }
 
 /**
@@ -24,19 +24,19 @@ export async function getIntakeById(
  * Returns null if no intake exists yet.
  */
 export async function getLatestIntakeByClientId(
-  clientId: string,
+	clientId: string
 ): Promise<ClientIntakeRow | null> {
-  const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("client_intake")
-    .select("*")
-    .eq("client_id", clientId)
-    .order("version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+	const supabase = createServerSupabaseClient();
+	const { data, error } = await supabase
+		.from("client_intake")
+		.select("*")
+		.eq("client_id", clientId)
+		.order("version", { ascending: false })
+		.limit(1)
+		.maybeSingle();
 
-  if (error) throw new Error(error.message);
-  return data;
+	if (error) throw new Error(error.message);
+	return data;
 }
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
@@ -46,24 +46,24 @@ export async function getLatestIntakeByClientId(
  * increments the version number so the submitted record is preserved.
  */
 export async function createIntake(
-  clientId: string,
-  userId: string,
-  previousVersion?: number,
+	clientId: string,
+	userId: string,
+	previousVersion?: number
 ): Promise<ClientIntakeRow> {
-  const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("client_intake")
-    .insert({
-      client_id: clientId,
-      created_by: userId,
-      status: "draft",
-      version: previousVersion ? previousVersion + 1 : 1,
-    })
-    .select()
-    .single();
+	const supabase = createServerSupabaseClient();
+	const { data, error } = await supabase
+		.from("client_intake")
+		.insert({
+			client_id: clientId,
+			created_by: userId,
+			status: "draft",
+			version: previousVersion ? previousVersion + 1 : 1,
+		})
+		.select()
+		.single();
 
-  if (error) throw new Error(error.message);
-  return data;
+	if (error) throw new Error(error.message);
+	return data;
 }
 
 /**
@@ -71,25 +71,25 @@ export async function createIntake(
  * The updated_at trigger increments automatically.
  */
 export async function upsertSection(
-  intakeId: string,
-  sectionKey: IntakeSectionKey,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: Record<string, any>,
+	intakeId: string,
+	sectionKey: IntakeSectionKey,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	data: Record<string, any>
 ): Promise<ClientIntakeRow> {
-  const supabase = createServerSupabaseClient();
-  // Build patch as a typed Json record so Supabase's strict Update type accepts it
-  const patch: Record<string, Json> = { [sectionKey]: data as Json };
-  const { data: updated, error } = await supabase
-    .from("client_intake")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .update(patch as any)
-    .eq("id", intakeId)
-    .eq("status", "draft")          // safety: never mutate submitted intakes
-    .select()
-    .single();
+	const supabase = createServerSupabaseClient();
+	// Build patch as a typed Json record so Supabase's strict Update type accepts it
+	const patch: Record<string, Json> = { [sectionKey]: data as Json };
+	const { data: updated, error } = await supabase
+		.from("client_intake")
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		.update(patch as any)
+		.eq("id", intakeId)
+		.eq("status", "draft") // safety: never mutate submitted intakes
+		.select()
+		.single();
 
-  if (error) throw new Error(error.message);
-  return updated;
+	if (error) throw new Error(error.message);
+	return updated;
 }
 
 /**
@@ -97,22 +97,22 @@ export async function upsertSection(
  * This is irreversible on the submitted record; use createIntake for revisions.
  */
 export async function submitIntake(
-  intakeId: string,
-  userId: string,
+	intakeId: string,
+	userId: string
 ): Promise<ClientIntakeRow> {
-  const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("client_intake")
-    .update({
-      status: "submitted",
-      submitted_at: new Date().toISOString(),
-      submitted_by: userId,
-    })
-    .eq("id", intakeId)
-    .eq("status", "draft")          // guard: only draft records can be submitted
-    .select()
-    .single();
+	const supabase = createServerSupabaseClient();
+	const { data, error } = await supabase
+		.from("client_intake")
+		.update({
+			status: "submitted",
+			submitted_at: new Date().toISOString(),
+			submitted_by: userId,
+		})
+		.eq("id", intakeId)
+		.eq("status", "draft") // guard: only draft records can be submitted
+		.select()
+		.single();
 
-  if (error) throw new Error(error.message);
-  return data;
+	if (error) throw new Error(error.message);
+	return data;
 }

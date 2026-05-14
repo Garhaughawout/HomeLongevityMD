@@ -5,43 +5,43 @@ import type { Database } from "@/types/database";
 import type { TypedSupabaseClient } from "@/types/supabase";
 
 type MiddlewareSupabaseClientResult = {
-  response: NextResponse;
-  supabase: TypedSupabaseClient;
+	response: NextResponse;
+	supabase: TypedSupabaseClient;
 };
 
 export const createMiddlewareSupabaseClient = (
-  request: NextRequest
+	request: NextRequest
 ): MiddlewareSupabaseClientResult => {
-  const { url, anonKey } = getSupabaseEnvironment();
+	const { url, anonKey } = getSupabaseEnvironment();
 
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+	let response = NextResponse.next({
+		request: {
+			headers: request.headers,
+		},
+	});
 
-  const supabase = createServerClient<Database>(url, anonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => {
-          request.cookies.set(name, value);
-        });
+	const supabase = createServerClient<Database>(url, anonKey, {
+		cookies: {
+			getAll() {
+				return request.cookies.getAll();
+			},
+			setAll(cookiesToSet) {
+				cookiesToSet.forEach(({ name, value }) => {
+					request.cookies.set(name, value);
+				});
 
-        response = NextResponse.next({
-          request: {
-            headers: request.headers,
-          },
-        });
+				response = NextResponse.next({
+					request: {
+						headers: request.headers,
+					},
+				});
 
-        cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
+				cookiesToSet.forEach(({ name, value, options }) => {
+					response.cookies.set(name, value, options);
+				});
+			},
+		},
+	});
 
-  return { response, supabase };
+	return { response, supabase };
 };

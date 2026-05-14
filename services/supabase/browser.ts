@@ -6,15 +6,15 @@ import type { TypedSupabaseClient } from "@/types/supabase";
 let browserSupabaseClient: TypedSupabaseClient | undefined;
 
 export const createBrowserSupabaseClient = (): TypedSupabaseClient => {
-  const { url, anonKey } = getSupabaseEnvironment();
+	const { url, anonKey } = getSupabaseEnvironment();
 
-  return createBrowserClient<Database>(url, anonKey);
+	return createBrowserClient<Database>(url, anonKey);
 };
 
 export const getBrowserSupabaseClient = (): TypedSupabaseClient => {
-  if (!browserSupabaseClient) {
-    browserSupabaseClient = createBrowserSupabaseClient();
-  }
+	if (!browserSupabaseClient) {
+		browserSupabaseClient = createBrowserSupabaseClient();
+	}
 
-  return browserSupabaseClient;
+	return browserSupabaseClient;
 };

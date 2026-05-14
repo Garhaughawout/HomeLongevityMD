@@ -3,94 +3,112 @@
 @tailwind utilities;
 
 :root {
-  --background: #edf2f8;
-  --foreground: #1c2f4b;
-  --ink: #0f2036;
-  --navy: #17304d;
-  --navy-strong: #10253d;
-  --navy-soft: rgba(23, 48, 77, 0.08);
-  --navy-soft-border: rgba(23, 48, 77, 0.18);
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-strong: #ffffff;
-  --border: rgba(28, 47, 75, 0.12);
-  --border-strong: rgba(28, 47, 75, 0.2);
-  --muted: #5f7088;
-  --muted-strong: #3f526c;
-  --accent: #c79d43;
-  --accent-strong: #9b7424;
-  --accent-soft: rgba(199, 157, 67, 0.12);
-  --accent-soft-border: rgba(199, 157, 67, 0.26);
-  --cream-strong: #f9fbff;
-  --shadow: 0 28px 90px rgba(12, 26, 44, 0.12);
+	--background: #edf2f8;
+	--foreground: #1c2f4b;
+	--ink: #0f2036;
+	--navy: #17304d;
+	--navy-strong: #10253d;
+	--navy-soft: rgba(23, 48, 77, 0.08);
+	--navy-soft-border: rgba(23, 48, 77, 0.18);
+	--surface: rgba(255, 255, 255, 0.92);
+	--surface-strong: #ffffff;
+	--border: rgba(28, 47, 75, 0.12);
+	--border-strong: rgba(28, 47, 75, 0.2);
+	--muted: #5f7088;
+	--muted-strong: #3f526c;
+	--accent: #c79d43;
+	--accent-strong: #9b7424;
+	--accent-soft: rgba(199, 157, 67, 0.12);
+	--accent-soft-border: rgba(199, 157, 67, 0.26);
+	--cream-strong: #f9fbff;
+	--shadow: 0 28px 90px rgba(12, 26, 44, 0.12);
 }
 
 * {
-  box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 html {
-  scroll-behavior: smooth;
+	scroll-behavior: smooth;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  background-image:
-    radial-gradient(circle at top left, rgba(199, 157, 67, 0.14), transparent 22%),
-    radial-gradient(circle at top right, rgba(23, 48, 77, 0.12), transparent 26%),
-    linear-gradient(180deg, #f8fbff 0%, #eef3f9 45%, #e7edf5 100%);
-  font-family: var(--font-geist-sans), sans-serif;
-  min-height: 100vh;
+	color: var(--foreground);
+	background: var(--background);
+	background-image:
+		radial-gradient(
+			circle at top left,
+			rgba(199, 157, 67, 0.14),
+			transparent 22%
+		),
+		radial-gradient(
+			circle at top right,
+			rgba(23, 48, 77, 0.12),
+			transparent 26%
+		),
+		linear-gradient(180deg, #f8fbff 0%, #eef3f9 45%, #e7edf5 100%);
+	font-family: var(--font-geist-sans), sans-serif;
+	min-height: 100vh;
 }
 
 a {
-  color: inherit;
-  text-decoration: none;
+	color: inherit;
+	text-decoration: none;
 }
 
 ::selection {
-  background: rgba(199, 157, 67, 0.28);
+	background: rgba(199, 157, 67, 0.28);
 }
 
 @layer base {
-  h1,
-  h2,
-  h3,
-  h4 {
-    letter-spacing: -0.03em;
-  }
+	h1,
+	h2,
+	h3,
+	h4 {
+		letter-spacing: -0.03em;
+	}
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+	.text-balance {
+		text-wrap: balance;
+	}
 
-  .surface {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(18px);
-  }
+	.surface {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		box-shadow: var(--shadow);
+		backdrop-filter: blur(18px);
+	}
 
-  .surface-strong {
-    background: var(--surface-strong);
-    border: 1px solid var(--border);
-  }
+	.surface-strong {
+		background: var(--surface-strong);
+		border: 1px solid var(--border);
+	}
 
-  .accent-ring {
-    box-shadow: 0 0 0 1px rgba(199, 157, 67, 0.22), var(--shadow);
-  }
+	.accent-ring {
+		box-shadow:
+			0 0 0 1px rgba(199, 157, 67, 0.22),
+			var(--shadow);
+	}
 
-  .navy-panel {
-    background: linear-gradient(145deg, rgba(15, 32, 54, 0.98), rgba(23, 48, 77, 0.96));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: var(--cream-strong);
-    box-shadow: 0 26px 80px rgba(12, 24, 40, 0.28);
-  }
+	.navy-panel {
+		background: linear-gradient(
+			145deg,
+			rgba(15, 32, 54, 0.98),
+			rgba(23, 48, 77, 0.96)
+		);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		color: var(--cream-strong);
+		box-shadow: 0 26px 80px rgba(12, 24, 40, 0.28);
+	}
 
-  .navy-outline {
-    border: 1px solid var(--navy-soft-border);
-    background: linear-gradient(180deg, rgba(23, 48, 77, 0.04), rgba(23, 48, 77, 0.02));
-  }
+	.navy-outline {
+		border: 1px solid var(--navy-soft-border);
+		background: linear-gradient(
+			180deg,
+			rgba(23, 48, 77, 0.04),
+			rgba(23, 48, 77, 0.02)
+		);
+	}
 }

@@ -1,5 +1,5 @@
 export type AppNavItem = {
-  label: string;
-  href: string;
-  description: string;
+	label: string;
+	href: string;
+	description: string;
 };

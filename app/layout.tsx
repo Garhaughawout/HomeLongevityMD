@@ -4,38 +4,38 @@ import { siteConfig } from "@/lib/site-config";
 import "./globals.css";
 
 const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+	src: "./fonts/GeistVF.woff",
+	variable: "--font-geist-sans",
+	weight: "100 900",
 });
 
 const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+	src: "./fonts/GeistMonoVF.woff",
+	variable: "--font-geist-mono",
+	weight: "100 900",
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default: siteConfig.name,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
+	metadataBase: new URL(siteConfig.url),
+	title: {
+		default: siteConfig.name,
+		template: `%s | ${siteConfig.name}`,
+	},
+	description: siteConfig.description,
 };
 
 export default function RootLayout({
-  children,
+	children,
 }: Readonly<{
-  children: React.ReactNode;
+	children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
-      >
-        {children}
-      </body>
-    </html>
-  );
+	return (
+		<html lang="en" suppressHydrationWarning>
+			<body
+				className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
+			>
+				{children}
+			</body>
+		</html>
+	);
 }

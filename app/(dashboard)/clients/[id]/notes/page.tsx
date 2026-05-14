@@ -6,11 +6,11 @@ import { NotesList } from "@/features/clients/components/notes-list";
 type Props = { params: { id: string } };
 
 export default async function ClientNotesPage({ params }: Props) {
-  const [client, notes] = await Promise.all([
-    getClientById(params.id),
-    getNotesByClientId(params.id),
-  ]);
-  if (!client) notFound();
+	const [client, notes] = await Promise.all([
+		getClientById(params.id),
+		getNotesByClientId(params.id),
+	]);
+	if (!client) notFound();
 
-  return <NotesList clientId={client.id} initialNotes={notes} />;
+	return <NotesList clientId={client.id} initialNotes={notes} />;
 }

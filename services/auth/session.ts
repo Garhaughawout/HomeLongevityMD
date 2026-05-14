@@ -2,20 +2,20 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/services/supabase/server";
 
 export async function getCurrentUser() {
-  const supabase = createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+	const supabase = createServerSupabaseClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
 
-  return user;
+	return user;
 }
 
 export async function requireAuthenticatedUser() {
-  const user = await getCurrentUser();
+	const user = await getCurrentUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+	if (!user) {
+		redirect("/login");
+	}
 
-  return user;
+	return user;
 }
