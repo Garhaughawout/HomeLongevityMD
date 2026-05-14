@@ -5,8 +5,10 @@ import { z } from "zod";
 import { requireAuthenticatedUser } from "@/services/auth/session";
 import {
 	createQuote,
+	updateQuote,
 	updateQuoteStatus,
 	regenerateQuote,
+	deleteQuote,
 } from "@/services/quotes";
 
 const createQuoteSchema = z.object({
@@ -69,6 +71,77 @@ export async function createQuoteAction(
 		});
 	} catch {
 		return { globalError: "Failed to create quote. Please try again." };
+	}
+
+	revalidatePath(`/clients/${clientId}/quotes`);
+	return { success: true };
+}
+
+export async function deleteQuoteAction(
+	clientId: string,
+	quoteId: string
+): Promise<void> {
+	await requireAuthenticatedUser();
+	await deleteQuote(quoteId);
+	revalidatePath(`/clients/${clientId}/quotes`);
+}
+
+const editQuoteSchema = z.object({
+	base_plan_fee: z.coerce.number().positive("Fee must be a positive number"),
+	risk_multiplier: z.coerce
+		.number()
+		.min(1, "Multiplier must be ≥ 1.0")
+		.default(1.0),
+	services_included: z.string().trim().optional(),
+	valid_until: z
+		.string()
+		.trim()
+		.regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format")
+		.or(z.literal(""))
+		.optional(),
+});
+
+export type EditQuoteFormState = {
+	errors?: Partial<Record<keyof z.infer<typeof editQuoteSchema>, string[]>>;
+	globalError?: string;
+	success?: true;
+};
+
+export async function updateQuoteAction(
+	clientId: string,
+	quoteId: string,
+	_prev: EditQuoteFormState,
+	formData: FormData
+): Promise<EditQuoteFormState> {
+	await requireAuthenticatedUser();
+
+	const parsed = editQuoteSchema.safeParse({
+		base_plan_fee: formData.get("base_plan_fee"),
+		risk_multiplier: formData.get("risk_multiplier") || 1.0,
+		services_included: formData.get("services_included"),
+		valid_until: formData.get("valid_until"),
+	});
+
+	if (!parsed.success) {
+		return { errors: parsed.error.flatten().fieldErrors };
+	}
+
+	const services = parsed.data.services_included
+		? parsed.data.services_included
+				.split("\n")
+				.map((s) => s.trim())
+				.filter(Boolean)
+		: undefined;
+
+	try {
+		await updateQuote(quoteId, {
+			basePlanFee: parsed.data.base_plan_fee,
+			riskMultiplier: parsed.data.risk_multiplier,
+			servicesIncluded: services,
+			validUntil: parsed.data.valid_until || undefined,
+		});
+	} catch {
+		return { globalError: "Failed to update quote. Please try again." };
 	}
 
 	revalidatePath(`/clients/${clientId}/quotes`);

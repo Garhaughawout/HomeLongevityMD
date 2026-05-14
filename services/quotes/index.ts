@@ -62,6 +62,45 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRow> {
 	return data;
 }
 
+export type UpdateQuoteInput = {
+	basePlanFee: number;
+	riskMultiplier?: number;
+	servicesIncluded?: string[];
+	validUntil?: string;
+};
+
+export async function updateQuote(
+	quoteId: string,
+	input: UpdateQuoteInput
+): Promise<void> {
+	const supabase = createServerSupabaseClient();
+	const multiplier = input.riskMultiplier ?? 1.0;
+	const planFee = Math.round(input.basePlanFee * multiplier * 100) / 100;
+
+	const { error } = await supabase
+		.from("quotes")
+		.update({
+			base_plan_fee: input.basePlanFee,
+			risk_multiplier: multiplier,
+			plan_fee: planFee,
+			services_included: input.servicesIncluded ?? null,
+			valid_until: input.validUntil ?? null,
+		})
+		.eq("id", quoteId);
+
+	if (error) throw new Error(error.message);
+}
+
+export async function deleteQuote(quoteId: string): Promise<void> {
+	const supabase = createServerSupabaseClient();
+	const { error } = await supabase
+		.from("quotes")
+		.delete()
+		.eq("id", quoteId);
+
+	if (error) throw new Error(error.message);
+}
+
 export async function updateQuoteStatus(
 	quoteId: string,
 	status: "draft" | "sent" | "accepted" | "declined" | "expired"

@@ -4,9 +4,12 @@ import { useState, useEffect } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
 	createQuoteAction,
+	updateQuoteAction,
 	updateQuoteStatusAction,
 	regenerateQuoteAction,
+	deleteQuoteAction,
 	type CreateQuoteFormState,
+	type EditQuoteFormState,
 } from "@/features/clients/actions/quotes";
 import type { QuoteRow, RiskAssessmentRow } from "@/types/supabase";
 import { suggestQuote, DEFAULT_BASE_PLAN_FEE } from "@/services/pricing";
@@ -45,9 +48,151 @@ function formatDate(iso: string | null) {
 
 // -- QuoteRow -----------------------------------------------------------------
 
-function QuoteRow_({ quote, clientId }: { quote: QuoteRow; clientId: string }) {
+function EditQuoteForm({
+	quote,
+	clientId,
+	onClose,
+}: {
+	quote: QuoteRow;
+	clientId: string;
+	onClose: () => void;
+}) {
+	const boundAction = updateQuoteAction.bind(null, clientId, quote.id);
+	const [state, formAction] = useFormState<EditQuoteFormState, FormData>(
+		boundAction,
+		{}
+	);
+
+	const [baseRate, setBaseRate] = useState(
+		Number(quote.base_plan_fee).toFixed(2)
+	);
+	const [multiplier, setMultiplier] = useState(
+		Number(quote.risk_multiplier).toFixed(2)
+	);
+	const [services, setServices] = useState(
+		Array.isArray(quote.services_included)
+			? (quote.services_included as string[]).join("\n")
+			: ""
+	);
+
+	useEffect(() => {
+		if (state.success) onClose();
+	}, [state.success, onClose]);
+
+	const finalRate =
+		Math.round(
+			parseFloat(baseRate || "0") * parseFloat(multiplier || "1") * 100
+		) / 100;
+
+	return (
+		<form action={formAction} className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: "var(--border)" }}>
+			<p className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Edit Quote</p>
+			<div className="grid gap-4 sm:grid-cols-2">
+				<div>
+					<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+						Base Plan Fee ($)
+					</label>
+					<input
+						name="base_plan_fee"
+						type="number"
+						step="0.01"
+						min="0"
+						required
+						value={baseRate}
+						onChange={(e) => setBaseRate(e.target.value)}
+						className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+						style={{ borderColor: "var(--border-strong)", color: "var(--foreground)", backgroundColor: "var(--surface-strong)" }}
+					/>
+					{state.errors?.base_plan_fee && (
+						<p className="mt-1 text-xs text-red-600">{state.errors.base_plan_fee[0]}</p>
+					)}
+				</div>
+				<div>
+					<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+						Risk Multiplier
+					</label>
+					<input
+						name="risk_multiplier"
+						type="number"
+						step="0.01"
+						min="1"
+						value={multiplier}
+						onChange={(e) => setMultiplier(e.target.value)}
+						className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+						style={{ borderColor: "var(--border-strong)", color: "var(--foreground)", backgroundColor: "var(--surface-strong)" }}
+					/>
+					<p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>
+						Plan Fee: {formatCurrency(finalRate)}
+					</p>
+				</div>
+				<div>
+					<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+						Valid Until
+					</label>
+					<input
+						name="valid_until"
+						type="date"
+						defaultValue={quote.valid_until ?? ""}
+						className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+						style={{ borderColor: "var(--border-strong)", color: "var(--foreground)", backgroundColor: "var(--surface-strong)" }}
+					/>
+				</div>
+			</div>
+			<div>
+				<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+					Services Included (one per line)
+				</label>
+				<textarea
+					name="services_included"
+					rows={4}
+					value={services}
+					onChange={(e) => setServices(e.target.value)}
+					className="w-full rounded-lg border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2"
+					style={{ borderColor: "var(--border-strong)", color: "var(--foreground)", backgroundColor: "var(--surface-strong)" }}
+				/>
+			</div>
+			{state.globalError && (
+				<p className="text-xs text-red-600">{state.globalError}</p>
+			)}
+			<div className="flex justify-end gap-2">
+				<button
+					type="button"
+					onClick={onClose}
+					className="px-4 py-1.5 rounded-lg text-sm border"
+					style={{ borderColor: "var(--border-strong)", color: "var(--muted-strong)" }}
+				>
+					Cancel
+				</button>
+				<EditSubmitBtn />
+			</div>
+		</form>
+	);
+}
+
+function EditSubmitBtn() {
+	const { pending } = useFormStatus();
+	return (
+		<button
+			type="submit"
+			disabled={pending}
+			className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+			style={{ backgroundColor: "var(--navy)" }}
+		>
+			{pending ? "Saving…" : "Save Changes"}
+		</button>
+	);
+}
+
+function QuoteRow_({
+	quote,
+	clientId,
+}: {
+	quote: QuoteRow;
+	clientId: string;
+}) {
 	const colors = STATUS_COLORS[quote.status] ?? STATUS_COLORS.draft;
 	const [pending, setPending] = useState(false);
+	const [editing, setEditing] = useState(false);
 
 	const handleStatus = async (
 		status: "sent" | "accepted" | "declined" | "expired"
@@ -57,9 +202,16 @@ function QuoteRow_({ quote, clientId }: { quote: QuoteRow; clientId: string }) {
 		setPending(false);
 	};
 
-	const handleRegenerate = async () => {
+	const handleNewVersion = async () => {
 		setPending(true);
 		await regenerateQuoteAction(clientId, quote.id);
+		setPending(false);
+	};
+
+	const handleDelete = async () => {
+		if (!confirm("Delete this quote? This cannot be undone.")) return;
+		setPending(true);
+		await deleteQuoteAction(clientId, quote.id);
 		setPending(false);
 	};
 
@@ -97,22 +249,39 @@ function QuoteRow_({ quote, clientId }: { quote: QuoteRow; clientId: string }) {
 						{formatCurrency(quote.plan_fee)}
 					</p>
 					<p className="text-xs" style={{ color: "var(--muted)" }}>
-						Base {formatCurrency(quote.base_plan_fee)} ·
-						Multiplier {Number(quote.risk_multiplier).toFixed(2)}x ·
-						Valid until {formatDate(quote.valid_until)}
+						Base {formatCurrency(quote.base_plan_fee)} · Multiplier{" "}
+						{Number(quote.risk_multiplier).toFixed(2)}x · Valid until{" "}
+						{formatDate(quote.valid_until)}
 					</p>
 				</div>
 
 				<div className="flex flex-wrap gap-2 items-center">
 					{quote.status === "draft" && (
-						<button
-							disabled={pending}
-							onClick={() => handleStatus("sent")}
-							className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
-							style={{ backgroundColor: "var(--navy)" }}
-						>
-							Mark Sent
-						</button>
+						<>
+							<button
+								disabled={pending}
+								onClick={() => setEditing((v) => !v)}
+								className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50"
+								style={{ borderColor: "var(--border-strong)", color: "var(--foreground)" }}
+							>
+								{editing ? "Cancel Edit" : "Edit"}
+							</button>
+							<button
+								disabled={pending}
+								onClick={() => handleStatus("sent")}
+								className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+								style={{ backgroundColor: "var(--navy)" }}
+							>
+								Mark Sent
+							</button>
+							<button
+								disabled={pending}
+								onClick={handleDelete}
+								className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-red-600 disabled:opacity-50"
+							>
+								Delete
+							</button>
+						</>
 					)}
 					{quote.status === "sent" && (
 						<>
@@ -134,14 +303,14 @@ function QuoteRow_({ quote, clientId }: { quote: QuoteRow; clientId: string }) {
 					)}
 					<button
 						disabled={pending}
-						onClick={handleRegenerate}
+						onClick={handleNewVersion}
 						className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50"
 						style={{
 							borderColor: "var(--border-strong)",
 							color: "var(--muted-strong)",
 						}}
 					>
-						Regenerate
+						New Version
 					</button>
 				</div>
 			</div>
@@ -155,14 +324,20 @@ function QuoteRow_({ quote, clientId }: { quote: QuoteRow; clientId: string }) {
 								className="text-xs flex gap-1 items-center"
 								style={{ color: "var(--muted-strong)" }}
 							>
-								<span style={{ color: "var(--accent)" }}>
-									✓
-								</span>{" "}
+								<span style={{ color: "var(--accent)" }}>✓</span>{" "}
 								{s}
 							</li>
 						))}
 					</ul>
 				)}
+
+			{editing && quote.status === "draft" && (
+				<EditQuoteForm
+					quote={quote}
+					clientId={clientId}
+					onClose={() => setEditing(false)}
+				/>
+			)}
 		</div>
 	);
 }

@@ -11,29 +11,32 @@ import type { RiskAssessmentRow } from "@/types/supabase";
 
 export const RISK_MULTIPLIERS: Record<string, number> = {
 	low: 1.0,
-	moderate: 1.15,
-	high: 1.3,
-	very_high: 1.5,
-	unsafe_independent: 1.75,
+	moderate: 1.33,
+	high: 1.66,
+	very_high: 2.0,
+	unsafe_independent: 2.5,
 };
 
 // ── Default base plan fee ($USD, one-time) ───────────────────────────────────
 // Starting fee for a standard plan before risk loading.
-export const DEFAULT_BASE_PLAN_FEE = 4500;
+export const DEFAULT_BASE_PLAN_FEE = 1500;
 
 // ── Service catalog ───────────────────────────────────────────────────────────
+// These are the planning and advisory deliverables HomeLongevityMD provides —
+// not hands-on caregiving. Each item is a concrete output the client receives
+// as part of their personalized independence plan.
 
 export const SERVICE_CATALOG = [
-	"Personal care assistance",
-	"Medication management",
-	"Fall prevention monitoring",
-	"Meal preparation",
-	"Transportation assistance",
-	"Housekeeping",
-	"Companionship services",
-	"Emergency response monitoring",
-	"Cognitive support",
-	"Caregiver coordination",
+	"Personalized home longevity plan",
+	"Home safety assessment & modification recommendations",
+	"Fall risk reduction protocol",
+	"Mobility & exercise prescription",
+	"Medication review & simplification guidance",
+	"Nutrition & meal planning recommendations",
+	"Cognitive health strategies",
+	"ADL/IADL independence strategies",
+	"Local resource & referral guide",
+	"Annual plan review & update",
 ] as const;
 
 export type CatalogService = (typeof SERVICE_CATALOG)[number];
@@ -41,34 +44,33 @@ export type CatalogService = (typeof SERVICE_CATALOG)[number];
 // ── Suggestion logic ──────────────────────────────────────────────────────────
 
 /**
- * Returns a list of recommended services based on which domains scored high
+ * Returns recommended plan deliverables based on which domains scored high
  * (≥ 40 = elevated risk in that domain).
+ * Every client receives the core plan and resource guide.
  */
 export function suggestServices(assessment: RiskAssessmentRow): string[] {
 	const services = new Set<string>([
-		"Personal care assistance",
-		"Emergency response monitoring",
+		"Personalized home longevity plan",
+		"Local resource & referral guide",
 	]);
 
+	if (assessment.home_safety_score >= 40)
+		services.add("Home safety assessment & modification recommendations");
+
 	if (assessment.fall_risk_score >= 40)
-		services.add("Fall prevention monitoring");
-
-	if (assessment.cognition_score >= 40) services.add("Cognitive support");
-
-	if (assessment.adls_iadls_score >= 40) {
-		services.add("Medication management");
-		services.add("Meal preparation");
-	}
-
-	if (assessment.caregiver_support_score >= 40) {
-		services.add("Caregiver coordination");
-		services.add("Companionship services");
-	}
+		services.add("Fall risk reduction protocol");
 
 	if (assessment.mobility_score >= 40)
-		services.add("Transportation assistance");
+		services.add("Mobility & exercise prescription");
 
-	if (assessment.home_safety_score >= 40) services.add("Housekeeping");
+	if (assessment.adls_iadls_score >= 40) {
+		services.add("Medication review & simplification guidance");
+		services.add("Nutrition & meal planning recommendations");
+		services.add("ADL/IADL independence strategies");
+	}
+
+	if (assessment.cognition_score >= 40)
+		services.add("Cognitive health strategies");
 
 	return [...services];
 }
