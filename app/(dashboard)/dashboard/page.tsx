@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAuthenticatedUser } from "@/services/auth/session";
 import { createServerSupabaseClient } from "@/services/supabase/server";
-import type { ClientRow } from "@/types/supabase";
+import type { ClientRow, ClientIntakeRow } from "@/types/supabase";
 
 async function getDashboardStats() {
 	const supabase = createServerSupabaseClient();
@@ -40,6 +40,50 @@ async function getDashboardStats() {
 	};
 }
 
+async function getPendingIntakes() {
+	const supabase = createServerSupabaseClient();
+	// Get all clients
+	const { data: clients } = await supabase
+		.from("clients")
+		.select("id, full_name, status, created_at")
+		.order("created_at", { ascending: false })
+		.limit(50);
+
+	if (!clients || clients.length === 0) return [];
+
+	// Get latest intake for each client
+	const clientIds = clients.map((c) => c.id);
+	const { data: intakes } = await supabase
+		.from("client_intake")
+		.select("id, client_id, status, version, updated_at")
+		.in("client_id", clientIds)
+		.order("version", { ascending: false });
+
+	// Build a map of latest intake per client
+	const intakeMap = new Map<string, ClientIntakeRow>();
+	for (const intake of (intakes ?? []) as ClientIntakeRow[]) {
+		if (!intakeMap.has(intake.client_id)) {
+			intakeMap.set(intake.client_id, intake);
+		}
+	}
+
+	// Return clients with no intake or draft intake
+	return clients
+		.map((c) => {
+			const intake = intakeMap.get(c.id);
+			return {
+				id: c.id,
+				full_name: c.full_name,
+				status: c.status,
+				intakeStatus: !intake ? "not_started" : intake.status,
+				intakeVersion: intake?.version ?? 0,
+				updatedAt: intake?.updated_at ?? null,
+			};
+		})
+		.filter((c) => c.intakeStatus !== "submitted")
+		.slice(0, 8);
+}
+
 const STATUS_STYLE: Record<string, string> = {
 	active: "bg-emerald-100 text-emerald-800",
 	pending: "bg-amber-100 text-amber-800",
@@ -49,9 +93,10 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-	const [user, stats] = await Promise.all([
+	const [user, stats, pendingIntakes] = await Promise.all([
 		requireAuthenticatedUser(),
 		getDashboardStats(),
+		getPendingIntakes(),
 	]);
 
 	const kpis = [
@@ -102,6 +147,77 @@ export default async function DashboardPage() {
 					</article>
 				))}
 			</div>
+
+			{/* Pending Intakes — quick action list */}
+			{pendingIntakes.length > 0 && (
+				<section
+					className="rounded-2xl overflow-hidden"
+					style={{
+						background: "var(--surface)",
+						border: "1px solid var(--border)",
+					}}
+				>
+					<div
+						className="flex items-center justify-between px-6 py-4"
+						style={{ borderBottom: "1px solid var(--border)" }}
+					>
+						<div className="flex items-center gap-2">
+							<h2
+								className="text-sm font-semibold"
+								style={{ color: "var(--foreground)" }}
+							>
+								Pending Intakes
+							</h2>
+							<span
+								className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
+							>
+								{pendingIntakes.length}
+							</span>
+						</div>
+						<Link
+							href="/clients"
+							className="text-xs font-medium"
+							style={{ color: "var(--accent-strong)" }}
+						>
+							All clients →
+						</Link>
+					</div>
+					<ul
+						className="divide-y"
+						style={{ borderColor: "var(--border)" }}
+					>
+						{pendingIntakes.map((c) => (
+							<li
+								key={c.id}
+								className="flex items-center justify-between gap-4 px-6 py-3"
+							>
+								<div className="flex items-center gap-3">
+									<Link
+										href={`/clients/${c.id}`}
+										className="text-sm font-medium hover:underline"
+										style={{ color: "var(--foreground)" }}
+									>
+										{c.full_name}
+									</Link>
+									<span
+										className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLE[c.status ?? ""] ?? "bg-gray-100 text-gray-600"}`}
+									>
+										{c.intakeStatus === "not_started"
+											? "No intake"
+											: `Draft v${c.intakeVersion}`}
+									</span>
+								</div>
+								<Link
+									href={`/clients/${c.id}/intake`}
+									className="rounded-lg bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+								>
+									{c.intakeStatus === "not_started" ? "Start →" : "Continue →"}
+								</Link>
+							</li>
+						))}
+					</ul>
+				</section>
+			)}
 
 			{/* Recent clients */}
 			<section

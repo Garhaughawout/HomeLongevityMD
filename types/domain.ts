@@ -28,34 +28,77 @@ export const INTAKE_STATUS_LABELS: Record<IntakeStatus, string> = {
 	submitted: "Submitted",
 };
 
+// ── Intake sections (new 3-tier adaptive assessment) ──────────────────────────
+
 export type IntakeSectionKey =
-	| "home_safety"
-	| "mobility"
-	| "adls_iadls"
-	| "cognition"
-	| "fall_risk"
-	| "caregiver_support"
+	| "clinical_context"
+	| "home_fast"
+	| "adl_iadl"
+	| "tug_test"
+	| "frail_scale"
+	| "mmse"
+	| "ot_clinical_judgment"
+	| "berg_balance"
+	| "tier2_cognitive"
+	| "tier2_frailty"
+	| "tier2_environmental"
 	| "physician_review";
 
 export const INTAKE_SECTIONS = [
-	"home_safety",
-	"mobility",
-	"adls_iadls",
-	"cognition",
-	"fall_risk",
-	"caregiver_support",
+	"clinical_context",
+	"home_fast",
+	"adl_iadl",
+	"tug_test",
+	"frail_scale",
+	"mmse",
+	"ot_clinical_judgment",
+	"berg_balance",
+	"tier2_cognitive",
+	"tier2_frailty",
+	"tier2_environmental",
 	"physician_review",
 ] as const satisfies ReadonlyArray<IntakeSectionKey>;
 
 export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
-	home_safety: "Home Environment",
-	mobility: "Mobility & Function",
-	adls_iadls: "ADLs & IADLs",
-	cognition: "Cognitive & Safety",
-	fall_risk: "Fall Risk",
-	caregiver_support: "Caregiver Support",
+	clinical_context: "Clinical Context",
+	home_fast: "HOME FAST",
+	adl_iadl: "ADLs & IADLs",
+	tug_test: "TUG Test",
+	frail_scale: "FRAIL Scale",
+	mmse: "MMSE",
+	ot_clinical_judgment: "OT Clinical Judgment",
+	berg_balance: "Berg Balance Scale",
+	tier2_cognitive: "Cognitive & Safety Pathway",
+	tier2_frailty: "Frailty & Medical Pathway",
+	tier2_environmental: "Environmental Hazard Pathway",
 	physician_review: "Physician Review",
 };
+
+// Tier classification for UI grouping
+export type AssessmentTier = "tier0" | "tier1" | "tier1_5" | "tier2" | "tier3";
+
+export const INTAKE_SECTION_TIERS: Record<IntakeSectionKey, AssessmentTier> = {
+	clinical_context: "tier0",
+	home_fast: "tier1",
+	adl_iadl: "tier1",
+	tug_test: "tier1",
+	frail_scale: "tier1",
+	mmse: "tier1",
+	ot_clinical_judgment: "tier1_5",
+	berg_balance: "tier2",
+	tier2_cognitive: "tier2",
+	tier2_frailty: "tier2",
+	tier2_environmental: "tier2",
+	physician_review: "tier3",
+};
+
+// Which Tier 2 sections are triggered by which Tier 1 results
+export const TIER2_TRIGGERS = {
+	berg_balance: "tug_test",        // TUG >= 12 seconds
+	tier2_cognitive: "mmse",          // MMSE < 24
+	tier2_frailty: "frail_scale",     // FRAIL >= 3 (pre-frail or frail)
+	tier2_environmental: "home_fast", // HOME FAST high hazard count
+} as const;
 
 // ── Risk assessments ──────────────────────────────────────────────────────────
 

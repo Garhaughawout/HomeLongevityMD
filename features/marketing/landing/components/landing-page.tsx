@@ -42,14 +42,14 @@ export function LandingPage() {
 					</div>
 				</div>
 
-				<div className="navy-panel rounded-xl p-8 space-y-4">
+				<div className="navy-panel rounded-xl p-10 space-y-4">
 					<p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60">
 						About the Company
 					</p>
 					<p className="text-xl font-semibold leading-snug text-white">
 						Scott Haughawout, DO
 					</p>
-					<p className="text-sm text-white/70 leading-7">
+					<p className="text-md text-white/70 leading-7">
 						Board-certified physical medicine and rehabilitation
 						specialist with over a decade of clinical experience at
 						Nebraska Spine + Pain Center in Omaha. Dr. Haughawout

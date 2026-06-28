@@ -14,12 +14,17 @@ type Props = {
 };
 
 const SECTION_KEYS = [
-	"home_safety",
-	"mobility",
-	"adls_iadls",
-	"cognition",
-	"fall_risk",
-	"caregiver_support",
+	"clinical_context",
+	"home_fast",
+	"adl_iadl",
+	"tug_test",
+	"frail_scale",
+	"mmse",
+	"ot_clinical_judgment",
+	"berg_balance",
+	"tier2_cognitive",
+	"tier2_frailty",
+	"tier2_environmental",
 	"physician_review",
 ] as const satisfies ReadonlyArray<keyof ClientIntakeSections>;
 

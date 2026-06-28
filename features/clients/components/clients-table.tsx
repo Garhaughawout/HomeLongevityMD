@@ -88,14 +88,22 @@ export function ClientsTable({ clients }: ClientsTableProps) {
 								{formatDate(client.created_at)}
 							</td>
 
-							{/* Row action */}
-							<td className="px-4 py-3 text-right">
-								<Link
-									href={`/clients/${client.id}`}
-									className="text-xs font-medium text-[color:var(--accent)] hover:underline"
-								>
-									View →
-								</Link>
+							{/* Row actions */}
+							<td className="px-4 py-3">
+								<div className="flex items-center justify-end gap-2">
+									<Link
+										href={`/clients/${client.id}/intake`}
+										className="rounded-lg bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+									>
+										Start Intake
+									</Link>
+									<Link
+										href={`/clients/${client.id}`}
+										className="text-xs font-medium text-[color:var(--accent)] hover:underline"
+									>
+										View →
+									</Link>
+								</div>
 							</td>
 						</tr>
 					))}

@@ -22,7 +22,7 @@ async function getAllQuotes(): Promise<
 	if (error) throw new Error(error.message);
 	if (!quotes || quotes.length === 0) return [];
 
-	const clientIds = [...new Set(quotes.map((q) => q.client_id))];
+	const clientIds = Array.from(new Set(quotes.map((q) => q.client_id)));
 	const { data: clients } = await supabase
 		.from("clients")
 		.select("id, full_name")
@@ -161,7 +161,7 @@ export default async function QuotesPage() {
 										>
 											$
 											{Number(
-												q.final_monthly_rate
+												q.plan_fee
 											).toLocaleString("en-US", {
 												minimumFractionDigits: 2,
 											})}

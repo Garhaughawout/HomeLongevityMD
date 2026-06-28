@@ -57,11 +57,11 @@ function NoteForm({ clientId }: { clientId: string }) {
 			<div className="flex justify-end">
 				<button
 					type="submit"
-					disabled={pending}
+					disabled={useFormStatus().pending}
 					className="px-4 py-1.5 rounded-lg text-sm font-medium text-white transition disabled:opacity-50"
 					style={{ backgroundColor: "var(--navy)" }}
 				>
-					{pending ? "Saving…" : "Add Note"}
+					{useFormStatus().pending ? "Saving…" : "Add Note"}
 				</button>
 			</div>
 		</form>

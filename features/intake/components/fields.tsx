@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ReactNode } from "react";
-import type { YesNoUnknown, AssistanceLevel } from "@/types/intake";
+import type { YesNoNa, YesNoUnknown, AssistanceLevel } from "@/types/intake";
 
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
@@ -51,6 +51,40 @@ export function FieldWrap({
 				<p className="mt-1 text-xs text-[color:var(--muted)]">{hint}</p>
 			)}
 		</div>
+	);
+}
+
+// ── Yes / No / N/A radio (matches paper form) ─────────────────────────────────
+
+type YesNoNaFieldProps = {
+	label: string;
+	value: YesNoNa | undefined;
+	onChange: (v: YesNoNa) => void;
+	hint?: string;
+};
+
+export function YesNoNaField({ label, value, onChange, hint }: YesNoNaFieldProps) {
+	return (
+		<FieldWrap label={label} hint={hint}>
+			<div className="flex gap-4">
+				{(["yes", "no", "na"] as const).map((opt) => (
+					<label
+						key={opt}
+						className="flex cursor-pointer items-center gap-1.5 text-sm"
+					>
+						<input
+							type="radio"
+							checked={value === opt}
+							onChange={() => onChange(opt)}
+							className="accent-[color:var(--accent)]"
+						/>
+						{opt === "na"
+							? "N/A"
+							: opt.charAt(0).toUpperCase() + opt.slice(1)}
+					</label>
+				))}
+			</div>
+		</FieldWrap>
 	);
 }
 
@@ -118,6 +152,47 @@ export function YesNoField({ label, value, onChange, hint }: YesNoFieldProps) {
 							className="accent-[color:var(--accent)]"
 						/>
 						{opt ? "Yes" : "No"}
+					</label>
+				))}
+			</div>
+		</FieldWrap>
+	);
+}
+
+// ── Independence / Needs Help / Dependent radio ────────────────────────────────
+
+type IndependenceLevelFieldProps = {
+	label: string;
+	value: "independent" | "needs_help" | "dependent" | undefined;
+	onChange: (v: "independent" | "needs_help" | "dependent") => void;
+	hint?: string;
+};
+
+export function IndependenceLevelField({
+	label,
+	value,
+	onChange,
+	hint,
+}: IndependenceLevelFieldProps) {
+	return (
+		<FieldWrap label={label} hint={hint}>
+			<div className="flex gap-4">
+				{(
+					["independent", "needs_help", "dependent"] as const
+				).map((opt) => (
+					<label
+						key={opt}
+						className="flex cursor-pointer items-center gap-1.5 text-sm"
+					>
+						<input
+							type="radio"
+							checked={value === opt}
+							onChange={() => onChange(opt)}
+							className="accent-[color:var(--accent)]"
+						/>
+						{opt === "needs_help"
+							? "Needs Help"
+							: opt.charAt(0).toUpperCase() + opt.slice(1)}
 					</label>
 				))}
 			</div>
@@ -345,5 +420,77 @@ export function NrsSlider({ label, value, onChange, hint }: NrsSliderProps) {
 				<span>10 – Worst possible</span>
 			</div>
 		</FieldWrap>
+	);
+}
+
+// ── Checkbox group ────────────────────────────────────────────────────────────
+
+type CheckboxGroupProps = {
+	label: string;
+	options: Array<{ value: string; label: string }>;
+	values: string[] | undefined;
+	onChange: (v: string[]) => void;
+	hint?: string;
+};
+
+export function CheckboxGroup({
+	label,
+	options,
+	values,
+	onChange,
+	hint,
+}: CheckboxGroupProps) {
+	const current = values ?? [];
+
+	function toggle(val: string) {
+		if (current.includes(val)) {
+			onChange(current.filter((v) => v !== val));
+		} else {
+			onChange([...current, val]);
+		}
+	}
+
+	return (
+		<FieldWrap label={label} hint={hint} fullWidth>
+			<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+				{options.map((opt) => (
+					<label
+						key={opt.value}
+						className="flex cursor-pointer items-center gap-2 text-sm"
+					>
+						<input
+							type="checkbox"
+							checked={current.includes(opt.value)}
+							onChange={() => toggle(opt.value)}
+							className="accent-[color:var(--accent)]"
+						/>
+						{opt.label}
+					</label>
+				))}
+			</div>
+		</FieldWrap>
+	);
+}
+
+// ── Info banner (for trigger notifications) ──────────────────────────────────
+
+type InfoBannerProps = {
+	children: ReactNode;
+	variant?: "info" | "warning" | "success";
+};
+
+export function InfoBanner({ children, variant = "info" }: InfoBannerProps) {
+	const styles: Record<string, string> = {
+		info: "border-blue-200 bg-blue-50 text-blue-800",
+		warning: "border-amber-200 bg-amber-50 text-amber-800",
+		success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+	};
+
+	return (
+		<div
+			className={`rounded-lg border px-4 py-3 text-sm ${styles[variant]}`}
+		>
+			{children}
+		</div>
 	);
 }

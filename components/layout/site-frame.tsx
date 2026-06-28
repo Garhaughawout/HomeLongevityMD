@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/lib/site-config";
 
@@ -17,17 +18,27 @@ export function SiteFrame({ children }: SiteFrameProps) {
 						Physician-led home assessments · Omaha, NE
 					</p>
 				</div>
-				<nav className="hidden items-center gap-3 md:flex">
-					{siteConfig.publicNavigation.map((item) => (
-						<Link
-							key={item.href}
-							href={item.href}
-							className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/78 transition hover:bg-white/10 hover:text-white"
-						>
-							{item.label}
-						</Link>
-					))}
-				</nav>
+				<div className="flex items-center gap-4">
+					<nav className="hidden items-center gap-3 md:flex">
+						{siteConfig.publicNavigation.map((item) => (
+							<Link
+								key={item.href}
+								href={item.href}
+								className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/78 transition hover:bg-white/10 hover:text-white"
+							>
+								{item.label}
+							</Link>
+						))}
+					</nav>
+					<Image
+						src="/logo.png"
+						alt="HomeLongevityMD logo"
+						width={120}
+						height={48}
+						className="h-10 w-auto shrink-0 rounded-lg bg-white/95 px-2 py-1"
+						priority
+					/>
+				</div>
 			</header>
 			<div className="mx-auto flex min-h-screen w-full max-w-screen-2xl flex-col px-6 sm:px-10 lg:px-16">
 				<main className="flex-1 space-y-20 pb-16">{children}</main>

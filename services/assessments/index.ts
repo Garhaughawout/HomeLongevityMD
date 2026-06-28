@@ -39,23 +39,36 @@ export async function persistAssessment(
 	userId: string
 ): Promise<RiskAssessmentRow> {
 	const supabase = createServerSupabaseClient();
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const insert: Record<string, any> = {
+		client_id: clientId,
+		intake_id: intakeId,
+		scoring_version: SCORING_VERSION,
+		// New v2.0 domain scores
+		home_fast_score: scoring.home_fast_score,
+		adl_iadl_score: scoring.adl_iadl_score,
+		tug_test_score: scoring.tug_test_score,
+		frail_scale_score: scoring.frail_scale_score,
+		mmse_score: scoring.mmse_score,
+		ot_clinical_judgment_score: scoring.ot_clinical_judgment_score,
+		// Aggregate
+		aggregate_score: scoring.aggregate_score,
+		risk_category: scoring.risk_category,
+		score_details: scoring.score_details as Record<string, unknown>,
+		created_by: userId,
+	};
+
+	// Also write old column names for backward compat during transition
+	insert.home_safety_score = scoring.home_fast_score;
+	insert.adls_iadls_score = scoring.adl_iadl_score;
+	insert.mobility_score = scoring.tug_test_score;
+	insert.cognition_score = scoring.mmse_score;
+	insert.fall_risk_score = scoring.frail_scale_score;
+	insert.caregiver_support_score = scoring.ot_clinical_judgment_score;
+
 	const { data, error } = await supabase
 		.from("risk_assessments")
-		.insert({
-			client_id: clientId,
-			intake_id: intakeId,
-			scoring_version: SCORING_VERSION,
-			home_safety_score: scoring.home_safety_score,
-			mobility_score: scoring.mobility_score,
-			adls_iadls_score: scoring.adls_iadls_score,
-			cognition_score: scoring.cognition_score,
-			fall_risk_score: scoring.fall_risk_score,
-			caregiver_support_score: scoring.caregiver_support_score,
-			aggregate_score: scoring.aggregate_score,
-			risk_category: scoring.risk_category,
-			score_details: scoring.score_details as Record<string, unknown>,
-			created_by: userId,
-		})
+		.insert(insert)
 		.select()
 		.single();
 

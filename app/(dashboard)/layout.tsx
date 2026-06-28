@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { LogoutForm } from "@/features/auth/components/logout-form";
 import { requireAuthenticatedUser } from "@/services/auth/session";
@@ -17,10 +18,18 @@ export default async function DashboardLayout({
 			{/* ── Desktop sidebar ────────────────────────────────────────────────── */}
 			<aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-[color:var(--ink)] lg:flex">
 				{/* Brand */}
-				<div className="flex h-16 shrink-0 items-center border-b border-white/10 px-5">
+				<div className="flex h-16 shrink-0 flex-col items-center justify-center gap-1 border-b border-white/10 px-5">
+					<Image
+						src="/logo.png"
+						alt="HomeLongevityMD"
+						width={140}
+						height={40}
+						className="h-8 w-auto rounded bg-white/95 px-1.5 py-0.5"
+						priority
+					/>
 					<Link
 						href="/dashboard"
-						className="text-sm font-semibold tracking-wide text-white"
+						className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/50"
 					>
 						HomeLongevityMD
 					</Link>
@@ -45,12 +54,21 @@ export default async function DashboardLayout({
 			<div className="flex min-w-0 flex-1 flex-col">
 				<header className="shrink-0 bg-[color:var(--ink)] lg:hidden">
 					<div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-						<Link
-							href="/dashboard"
-							className="text-sm font-semibold text-white"
-						>
-							HomeLongevityMD
-						</Link>
+						<div className="flex items-center gap-2">
+							<Image
+								src="/logo.png"
+								alt="HomeLongevityMD"
+								width={100}
+								height={32}
+								className="h-7 w-auto rounded bg-white/95 px-1 py-0.5"
+							/>
+							<Link
+								href="/dashboard"
+								className="text-xs font-medium text-white/50"
+							>
+								HomeLongevityMD
+							</Link>
+						</div>
 						<LogoutForm />
 					</div>
 					<div className="px-3">

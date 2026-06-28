@@ -37,7 +37,7 @@ async function getAllAssessments(): Promise<AssessmentWithClient[]> {
 	if (error) throw new Error(error.message);
 	if (!assessments || assessments.length === 0) return [];
 
-	const clientIds = [...new Set(assessments.map((a) => a.client_id))];
+	const clientIds = Array.from(new Set(assessments.map((a) => a.client_id)));
 	const { data: clients } = await supabase
 		.from("clients")
 		.select("id, full_name")

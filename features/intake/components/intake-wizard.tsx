@@ -1,24 +1,34 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import type { ClientRow, ClientIntakeRow } from "@/types/supabase";
 import type {
-	HomeSafetyData,
-	MobilityData,
-	AdlsIadlsData,
-	CognitionData,
-	FallRiskData,
-	CaregiverSupportData,
+	ClinicalContextData,
+	HomeFastData,
+	AdlIadlData,
+	TugTestData,
+	FrailScaleData,
+	MmseData,
+	OtClinicalJudgmentData,
+	BergBalanceData,
+	Tier2CognitiveData,
+	Tier2FrailtyData,
+	Tier2EnvironmentalData,
 	PhysicianReviewData,
 } from "@/types/intake";
 import { saveSectionAction } from "@/features/intake/actions/save-section";
-import { WizardProgress, WIZARD_STEPS } from "./wizard-progress";
-import { SectionHomeSafety } from "./section-home-safety";
-import { SectionMobility } from "./section-mobility";
-import { SectionAdlsIadls } from "./section-adls-iadls";
-import { SectionCognition } from "./section-cognition";
-import { SectionFallRisk } from "./section-fall-risk";
-import { SectionCaregiverSupport } from "./section-caregiver";
+import { WizardProgress, buildWizardSteps, type WizardStep } from "./wizard-progress";
+import { SectionClinicalContext } from "./section-clinical-context";
+import { SectionHomeFast } from "./section-home-fast";
+import { SectionAdlIadl } from "./section-adl-iadl";
+import { SectionTugTest } from "./section-tug-test";
+import { SectionFrailScale } from "./section-frail-scale";
+import { SectionMmse } from "./section-mmse";
+import { SectionOtClinicalJudgment } from "./section-ot-clinical-judgment";
+import { SectionBergBalance } from "./section-berg-balance";
+import { SectionTier2Cognitive } from "./section-tier2-cognitive";
+import { SectionTier2Frailty } from "./section-tier2-frailty";
+import { SectionTier2Environmental } from "./section-tier2-environmental";
 import { SectionPhysicianReview } from "./section-physician-review";
 import { IntakeReview } from "./intake-review";
 
@@ -41,12 +51,17 @@ function hasData(val: object | null | undefined): boolean {
 function buildCompletedSections(intake: ClientIntakeRow | null): Set<string> {
 	if (!intake) return new Set();
 	const keys = [
-		"home_safety",
-		"mobility",
-		"adls_iadls",
-		"cognition",
-		"fall_risk",
-		"caregiver_support",
+		"clinical_context",
+		"home_fast",
+		"adl_iadl",
+		"tug_test",
+		"frail_scale",
+		"mmse",
+		"ot_clinical_judgment",
+		"berg_balance",
+		"tier2_cognitive",
+		"tier2_frailty",
+		"tier2_environmental",
 		"physician_review",
 	] as const;
 	const completed = new Set<string>();
@@ -72,23 +87,40 @@ export function IntakeWizard({ client, intake }: Props) {
 	);
 
 	// Section data (initialized from existing intake if present)
-	const [homeSafety, setHomeSafety] = useState<HomeSafetyData>(
-		(intake?.home_safety as HomeSafetyData) ?? {}
+	const [clinicalContext, setClinicalContext] = useState<ClinicalContextData>(
+		(intake?.clinical_context as ClinicalContextData) ?? {}
 	);
-	const [mobility, setMobility] = useState<MobilityData>(
-		(intake?.mobility as MobilityData) ?? {}
+	const [homeFast, setHomeFast] = useState<HomeFastData>(
+		(intake?.home_fast as HomeFastData) ?? {}
 	);
-	const [adlsIadls, setAdlsIadls] = useState<AdlsIadlsData>(
-		(intake?.adls_iadls as AdlsIadlsData) ?? {}
+	const [adlIadl, setAdlIadl] = useState<AdlIadlData>(
+		(intake?.adl_iadl as AdlIadlData) ??
+			(intake?.adls_iadls as AdlIadlData) ??
+			{}
 	);
-	const [cognition, setCognition] = useState<CognitionData>(
-		(intake?.cognition as CognitionData) ?? {}
+	const [tugTest, setTugTest] = useState<TugTestData>(
+		(intake?.tug_test as TugTestData) ?? {}
 	);
-	const [fallRisk, setFallRisk] = useState<FallRiskData>(
-		(intake?.fall_risk as FallRiskData) ?? {}
+	const [frailScale, setFrailScale] = useState<FrailScaleData>(
+		(intake?.frail_scale as FrailScaleData) ?? {}
 	);
-	const [caregiver, setCaregiver] = useState<CaregiverSupportData>(
-		(intake?.caregiver_support as CaregiverSupportData) ?? {}
+	const [mmse, setMmse] = useState<MmseData>(
+		(intake?.mmse as MmseData) ?? {}
+	);
+	const [otJudgment, setOtJudgment] = useState<OtClinicalJudgmentData>(
+		(intake?.ot_clinical_judgment as OtClinicalJudgmentData) ?? {}
+	);
+	const [bergBalance, setBergBalance] = useState<BergBalanceData>(
+		(intake?.berg_balance as BergBalanceData) ?? {}
+	);
+	const [tier2Cognitive, setTier2Cognitive] = useState<Tier2CognitiveData>(
+		(intake?.tier2_cognitive as Tier2CognitiveData) ?? {}
+	);
+	const [tier2Frailty, setTier2Frailty] = useState<Tier2FrailtyData>(
+		(intake?.tier2_frailty as Tier2FrailtyData) ?? {}
+	);
+	const [tier2Environmental, setTier2Environmental] = useState<Tier2EnvironmentalData>(
+		(intake?.tier2_environmental as Tier2EnvironmentalData) ?? {}
 	);
 	const [physicianReview, setPhysicianReview] = useState<PhysicianReviewData>(
 		(intake?.physician_review as PhysicianReviewData) ?? {}
@@ -96,33 +128,77 @@ export function IntakeWizard({ client, intake }: Props) {
 
 	const [isPending, startTransition] = useTransition();
 
+	// ── Compute active triggers from Tier 1 data ────────────────────────────────
+
+	const activeTriggers = useMemo(() => {
+		const triggers = new Set<string>();
+
+		// TUG >= 12 seconds → Berg Balance
+		if (tugTest.performed && tugTest.seconds !== undefined && tugTest.seconds >= 12) {
+			triggers.add("berg_balance");
+		}
+
+		// MMSE < 24 → Cognitive Pathway
+		const mmseTotal = mmse.total_score;
+		if (mmseTotal !== undefined && mmseTotal < 24) {
+			triggers.add("tier2_cognitive");
+		}
+
+		// FRAIL >= 3 → Frailty Pathway
+		const frailTotal = frailScale.total_score;
+		if (frailTotal !== undefined && frailTotal >= 3) {
+			triggers.add("tier2_frailty");
+		}
+
+		// HOME FAST high hazards (>= 7) → Environmental Pathway
+		const hazardCount = homeFast.hazard_count ?? 0;
+		if (hazardCount >= 7) {
+			triggers.add("tier2_environmental");
+		}
+
+		return triggers;
+	}, [tugTest, mmse, frailScale, homeFast]);
+
+	// ── Build dynamic step list ────────────────────────────────────────────────
+
+	const steps = useMemo(() => buildWizardSteps(activeTriggers), [activeTriggers]);
+
 	// ── Current section key + data ──────────────────────────────────────────────
 
-	type SectionEntry =
-		| { key: "home_safety"; data: HomeSafetyData }
-		| { key: "mobility"; data: MobilityData }
-		| { key: "adls_iadls"; data: AdlsIadlsData }
-		| { key: "cognition"; data: CognitionData }
-		| { key: "fall_risk"; data: FallRiskData }
-		| { key: "caregiver_support"; data: CaregiverSupportData }
-		| { key: "physician_review"; data: PhysicianReviewData };
+	type SectionEntry = {
+		key: string;
+		data: object;
+	};
 
 	function getSectionEntry(): SectionEntry | null {
-		switch (currentStep) {
-			case 0:
-				return { key: "home_safety", data: homeSafety };
-			case 1:
-				return { key: "mobility", data: mobility };
-			case 2:
-				return { key: "adls_iadls", data: adlsIadls };
-			case 3:
-				return { key: "cognition", data: cognition };
-			case 4:
-				return { key: "fall_risk", data: fallRisk };
-			case 5:
-				return { key: "caregiver_support", data: caregiver };
-			case 6:
-				return { key: "physician_review", data: physicianReview };
+		const step = steps[currentStep];
+		if (!step || step.key === "review") return null;
+
+		switch (step.key) {
+			case "clinical_context":
+				return { key: step.key, data: clinicalContext };
+			case "home_fast":
+				return { key: step.key, data: homeFast };
+			case "adl_iadl":
+				return { key: step.key, data: adlIadl };
+			case "tug_test":
+				return { key: step.key, data: tugTest };
+			case "frail_scale":
+				return { key: step.key, data: frailScale };
+			case "mmse":
+				return { key: step.key, data: mmse };
+			case "ot_clinical_judgment":
+				return { key: step.key, data: otJudgment };
+			case "berg_balance":
+				return { key: step.key, data: bergBalance };
+			case "tier2_cognitive":
+				return { key: step.key, data: tier2Cognitive };
+			case "tier2_frailty":
+				return { key: step.key, data: tier2Frailty };
+			case "tier2_environmental":
+				return { key: step.key, data: tier2Environmental };
+			case "physician_review":
+				return { key: step.key, data: physicianReview };
 			default:
 				return null;
 		}
@@ -133,8 +209,7 @@ export function IntakeWizard({ client, intake }: Props) {
 	function handleSaveAndContinue() {
 		const entry = getSectionEntry();
 		if (!entry) {
-			// on review step: just advance (no save)
-			setCurrentStep((s) => Math.min(s + 1, WIZARD_STEPS.length - 1));
+			setCurrentStep((s) => Math.min(s + 1, steps.length - 1));
 			return;
 		}
 
@@ -142,7 +217,7 @@ export function IntakeWizard({ client, intake }: Props) {
 		startTransition(async () => {
 			const result = await saveSectionAction(
 				client.id,
-				entry.key,
+				entry.key as never,
 				entry.data as Record<string, unknown>,
 				intakeId
 			);
@@ -159,7 +234,7 @@ export function IntakeWizard({ client, intake }: Props) {
 				next.add(entry.key);
 				return next;
 			});
-			setCurrentStep((s) => Math.min(s + 1, WIZARD_STEPS.length - 1));
+			setCurrentStep((s) => Math.min(s + 1, steps.length - 1));
 		});
 	}
 
@@ -167,8 +242,7 @@ export function IntakeWizard({ client, intake }: Props) {
 		setCurrentStep((s) => Math.max(s - 1, 0));
 	}
 
-	const isLastDataStep = currentStep === WIZARD_STEPS.length - 2; // step before review
-	const isReviewStep = currentStep === WIZARD_STEPS.length - 1;
+	const isReviewStep = steps[currentStep]?.key === "review";
 
 	// ── Submission success ──────────────────────────────────────────────────────
 
@@ -195,8 +269,8 @@ export function IntakeWizard({ client, intake }: Props) {
 						Intake Submitted
 					</h3>
 					<p className="text-sm text-[color:var(--muted)]">
-						This intake record is now locked. The scoring engine
-						will process it in Phase 10.
+						This intake record is now locked. The scoring engine will
+						process it automatically.
 					</p>
 				</div>
 			</div>
@@ -207,20 +281,25 @@ export function IntakeWizard({ client, intake }: Props) {
 
 	return (
 		<div className="flex gap-8">
-			{/* Sidebar progress */}
 			<WizardProgress
 				currentStep={currentStep}
 				completedSections={completedSections}
 				onStepClick={setCurrentStep}
+				steps={steps}
+				activeTriggers={activeTriggers}
 			/>
 
-			{/* Main content */}
 			<div className="min-w-0 flex-1">
-				{/* Header */}
+				{/* Mobile step indicator */}
+				<div className="mb-4 flex items-center gap-2 text-xs text-[color:var(--muted)] lg:hidden">
+					<span>Step {currentStep + 1} of {steps.length}</span>
+					<span className="text-[color:var(--border)]">·</span>
+					<span className="font-medium text-[color:var(--foreground)]">{steps[currentStep]?.label}</span>
+				</div>
 				<div className="mb-6 flex items-center justify-between">
 					<div>
 						<h2 className="text-base font-semibold text-[color:var(--foreground)]">
-							{WIZARD_STEPS[currentStep]?.label}
+							{steps[currentStep]?.label}
 						</h2>
 						{intake && (
 							<p className="text-xs text-[color:var(--muted)]">
@@ -247,45 +326,74 @@ export function IntakeWizard({ client, intake }: Props) {
 					</div>
 				</div>
 
-				{/* Section form */}
 				<div className="mb-8">
-					{currentStep === 0 && (
-						<SectionHomeSafety
-							value={homeSafety}
-							onChange={setHomeSafety}
+					{steps[currentStep]?.key === "clinical_context" && (
+						<SectionClinicalContext
+							value={clinicalContext}
+							onChange={setClinicalContext}
 						/>
 					)}
-					{currentStep === 1 && (
-						<SectionMobility
-							value={mobility}
-							onChange={setMobility}
+					{steps[currentStep]?.key === "home_fast" && (
+						<SectionHomeFast
+							value={homeFast}
+							onChange={setHomeFast}
 						/>
 					)}
-					{currentStep === 2 && (
-						<SectionAdlsIadls
-							value={adlsIadls}
-							onChange={setAdlsIadls}
+					{steps[currentStep]?.key === "adl_iadl" && (
+						<SectionAdlIadl
+							value={adlIadl}
+							onChange={setAdlIadl}
 						/>
 					)}
-					{currentStep === 3 && (
-						<SectionCognition
-							value={cognition}
-							onChange={setCognition}
+					{steps[currentStep]?.key === "tug_test" && (
+						<SectionTugTest
+							value={tugTest}
+							onChange={setTugTest}
 						/>
 					)}
-					{currentStep === 4 && (
-						<SectionFallRisk
-							value={fallRisk}
-							onChange={setFallRisk}
+					{steps[currentStep]?.key === "frail_scale" && (
+						<SectionFrailScale
+							value={frailScale}
+							onChange={setFrailScale}
 						/>
 					)}
-					{currentStep === 5 && (
-						<SectionCaregiverSupport
-							value={caregiver}
-							onChange={setCaregiver}
+					{steps[currentStep]?.key === "mmse" && (
+						<SectionMmse
+							value={mmse}
+							onChange={setMmse}
 						/>
 					)}
-					{currentStep === 6 && (
+					{steps[currentStep]?.key === "ot_clinical_judgment" && (
+						<SectionOtClinicalJudgment
+							value={otJudgment}
+							onChange={setOtJudgment}
+						/>
+					)}
+					{steps[currentStep]?.key === "berg_balance" && (
+						<SectionBergBalance
+							value={bergBalance}
+							onChange={setBergBalance}
+						/>
+					)}
+					{steps[currentStep]?.key === "tier2_cognitive" && (
+						<SectionTier2Cognitive
+							value={tier2Cognitive}
+							onChange={setTier2Cognitive}
+						/>
+					)}
+					{steps[currentStep]?.key === "tier2_frailty" && (
+						<SectionTier2Frailty
+							value={tier2Frailty}
+							onChange={setTier2Frailty}
+						/>
+					)}
+					{steps[currentStep]?.key === "tier2_environmental" && (
+						<SectionTier2Environmental
+							value={tier2Environmental}
+							onChange={setTier2Environmental}
+						/>
+					)}
+					{steps[currentStep]?.key === "physician_review" && (
 						<SectionPhysicianReview
 							value={physicianReview}
 							onChange={setPhysicianReview}
@@ -296,14 +404,19 @@ export function IntakeWizard({ client, intake }: Props) {
 							client={client}
 							intakeId={intakeId}
 							sections={{
-								home_safety: homeSafety,
-								mobility,
-								adls_iadls: adlsIadls,
-								cognition,
-								fall_risk: fallRisk,
-								caregiver_support: caregiver,
+								clinical_context: clinicalContext,
+								home_fast: homeFast,
+								adl_iadl: adlIadl,
+								tug_test: tugTest,
+								frail_scale: frailScale,
+								mmse: mmse,
+								ot_clinical_judgment: otJudgment,
+								berg_balance: bergBalance,
+								tier2_cognitive: tier2Cognitive,
+								tier2_frailty: tier2Frailty,
+								tier2_environmental: tier2Environmental,
 								physician_review: physicianReview,
-							}}
+							} as never}
 							onSubmitSuccess={() => setSubmitted(true)}
 						/>
 					)}
@@ -314,14 +427,12 @@ export function IntakeWizard({ client, intake }: Props) {
 					)}
 				</div>
 
-				{/* Error */}
 				{saveError && (
 					<p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
 						{saveError}
 					</p>
 				)}
 
-				{/* Navigation */}
 				{!isReviewStep && (
 					<div className="flex items-center justify-between border-t border-[color:var(--border)] pt-5">
 						<button
@@ -338,9 +449,7 @@ export function IntakeWizard({ client, intake }: Props) {
 						>
 							{isPending
 								? "Saving…"
-								: isLastDataStep
-									? "Save & Review"
-									: "Save & Continue"}
+								: "Save & Continue"}
 						</button>
 					</div>
 				)}

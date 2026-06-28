@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Pricing utilities — version 1.0
+// Pricing utilities — version 2.0
 //
 // Maps risk assessment outputs to suggested quote inputs.
 // Pure TypeScript — no DB calls. Safe to import in both server and client code.
@@ -45,7 +45,7 @@ export type CatalogService = (typeof SERVICE_CATALOG)[number];
 
 /**
  * Returns recommended plan deliverables based on which domains scored high
- * (≥ 40 = elevated risk in that domain).
+ * (>= 40 = elevated risk in that domain).
  * Every client receives the core plan and resource guide.
  */
 export function suggestServices(assessment: RiskAssessmentRow): string[] {
@@ -54,25 +54,27 @@ export function suggestServices(assessment: RiskAssessmentRow): string[] {
 		"Local resource & referral guide",
 	]);
 
-	if (assessment.home_safety_score >= 40)
+	if ((assessment.home_fast_score ?? 0) >= 40)
 		services.add("Home safety assessment & modification recommendations");
 
-	if (assessment.fall_risk_score >= 40)
+	if ((assessment.tug_test_score ?? 0) >= 40) {
 		services.add("Fall risk reduction protocol");
-
-	if (assessment.mobility_score >= 40)
 		services.add("Mobility & exercise prescription");
-
-	if (assessment.adls_iadls_score >= 40) {
-		services.add("Medication review & simplification guidance");
-		services.add("Nutrition & meal planning recommendations");
-		services.add("ADL/IADL independence strategies");
 	}
 
-	if (assessment.cognition_score >= 40)
+	if ((assessment.adl_iadl_score ?? 0) >= 40) {
+		services.add("ADL/IADL independence strategies");
+		services.add("Medication review & simplification guidance");
+		services.add("Nutrition & meal planning recommendations");
+	}
+
+	if ((assessment.mmse_score ?? 0) >= 40)
 		services.add("Cognitive health strategies");
 
-	return [...services];
+	if ((assessment.frail_scale_score ?? 0) >= 40)
+		services.add("Nutrition & meal planning recommendations");
+
+	return Array.from(services);
 }
 
 // ── Public entry point ────────────────────────────────────────────────────────

@@ -85,16 +85,38 @@ export type Database = {
 			};
 			client_intake: {
 				Row: {
+					// Legacy columns (kept for backward compatibility)
 					adls_iadls: Json | null;
 					caregiver_support: Json | null;
-					client_id: string;
 					cognition: Json | null;
-					created_at: string;
-					created_by: string | null;
 					fall_risk: Json | null;
 					home_safety: Json | null;
-					id: string;
 					mobility: Json | null;
+					// New FMII Model columns
+					clinical_context: Json | null;
+					home_fast: Json | null;
+					adl_iadl: Json | null;
+					tug_test: Json | null;
+					frail_scale: Json | null;
+					mmse: Json | null;
+					ot_clinical_judgment: Json | null;
+					berg_balance: Json | null;
+					tier2_cognitive: Json | null;
+					tier2_frailty: Json | null;
+					tier2_environmental: Json | null;
+					// Score columns
+					score_home_fast: number | null;
+					score_adl_iadl: number | null;
+					score_mobility: number | null;
+					score_frailty: number | null;
+					score_cognition: number | null;
+					score_ot_adjustment: number | null;
+					overall_risk: string | null;
+					// Common columns
+					client_id: string;
+					created_at: string;
+					created_by: string | null;
+					id: string;
 					physician_review: Json | null;
 					status: string;
 					submitted_at: string | null;
@@ -103,16 +125,38 @@ export type Database = {
 					version: number;
 				};
 				Insert: {
+					// Legacy columns
 					adls_iadls?: Json | null;
 					caregiver_support?: Json | null;
-					client_id: string;
 					cognition?: Json | null;
-					created_at?: string;
-					created_by?: string | null;
 					fall_risk?: Json | null;
 					home_safety?: Json | null;
-					id?: string;
 					mobility?: Json | null;
+					// New FMII Model columns
+					clinical_context?: Json | null;
+					home_fast?: Json | null;
+					adl_iadl?: Json | null;
+					tug_test?: Json | null;
+					frail_scale?: Json | null;
+					mmse?: Json | null;
+					ot_clinical_judgment?: Json | null;
+					berg_balance?: Json | null;
+					tier2_cognitive?: Json | null;
+					tier2_frailty?: Json | null;
+					tier2_environmental?: Json | null;
+					// Score columns
+					score_home_fast?: number | null;
+					score_adl_iadl?: number | null;
+					score_mobility?: number | null;
+					score_frailty?: number | null;
+					score_cognition?: number | null;
+					score_ot_adjustment?: number | null;
+					overall_risk?: string | null;
+					// Common columns
+					client_id: string;
+					created_at?: string;
+					created_by?: string | null;
+					id?: string;
 					physician_review?: Json | null;
 					status?: string;
 					submitted_at?: string | null;
@@ -121,16 +165,38 @@ export type Database = {
 					version?: number;
 				};
 				Update: {
+					// Legacy columns
 					adls_iadls?: Json | null;
 					caregiver_support?: Json | null;
-					client_id?: string;
 					cognition?: Json | null;
-					created_at?: string;
-					created_by?: string | null;
 					fall_risk?: Json | null;
 					home_safety?: Json | null;
-					id?: string;
 					mobility?: Json | null;
+					// New FMII Model columns
+					clinical_context?: Json | null;
+					home_fast?: Json | null;
+					adl_iadl?: Json | null;
+					tug_test?: Json | null;
+					frail_scale?: Json | null;
+					mmse?: Json | null;
+					ot_clinical_judgment?: Json | null;
+					berg_balance?: Json | null;
+					tier2_cognitive?: Json | null;
+					tier2_frailty?: Json | null;
+					tier2_environmental?: Json | null;
+					// Score columns
+					score_home_fast?: number | null;
+					score_adl_iadl?: number | null;
+					score_mobility?: number | null;
+					score_frailty?: number | null;
+					score_cognition?: number | null;
+					score_ot_adjustment?: number | null;
+					overall_risk?: string | null;
+					// Common columns
+					client_id?: string;
+					created_at?: string;
+					created_by?: string | null;
+					id?: string;
 					physician_review?: Json | null;
 					status?: string;
 					submitted_at?: string | null;
@@ -314,57 +380,87 @@ export type Database = {
 			};
 			risk_assessments: {
 				Row: {
+					// Legacy score columns
 					adls_iadls_score: number;
-					aggregate_score: number;
 					caregiver_support_score: number;
-					client_id: string;
 					cognition_score: number;
-					created_at: string;
-					created_by: string | null;
 					fall_risk_score: number;
 					home_safety_score: number;
-					id: string;
-					intake_id: string | null;
 					mobility_score: number;
+					// New v2.0 score columns
+					home_fast_score: number | null;
+					adl_iadl_score: number | null;
+					tug_test_score: number | null;
+					frail_scale_score: number | null;
+					mmse_score: number | null;
+					ot_clinical_judgment_score: number | null;
+					// Aggregate
+					aggregate_score: number;
 					risk_category: string;
 					score_details: Json | null;
 					scoring_version: string;
+					// Common
+					client_id: string;
+					created_at: string;
+					created_by: string | null;
+					id: string;
+					intake_id: string | null;
 					updated_at: string;
 				};
 				Insert: {
+					// Legacy score columns
 					adls_iadls_score: number;
-					aggregate_score: number;
 					caregiver_support_score: number;
-					client_id: string;
 					cognition_score: number;
-					created_at?: string;
-					created_by?: string | null;
 					fall_risk_score: number;
 					home_safety_score: number;
-					id?: string;
-					intake_id?: string | null;
 					mobility_score: number;
+					// New v2.0 score columns
+					home_fast_score?: number | null;
+					adl_iadl_score?: number | null;
+					tug_test_score?: number | null;
+					frail_scale_score?: number | null;
+					mmse_score?: number | null;
+					ot_clinical_judgment_score?: number | null;
+					// Aggregate
+					aggregate_score: number;
 					risk_category: string;
 					score_details?: Json | null;
 					scoring_version?: string;
+					// Common
+					client_id: string;
+					created_at?: string;
+					created_by?: string | null;
+					id?: string;
+					intake_id?: string | null;
 					updated_at?: string;
 				};
 				Update: {
+					// Legacy score columns
 					adls_iadls_score?: number;
-					aggregate_score?: number;
 					caregiver_support_score?: number;
-					client_id?: string;
 					cognition_score?: number;
-					created_at?: string;
-					created_by?: string | null;
 					fall_risk_score?: number;
 					home_safety_score?: number;
-					id?: string;
-					intake_id?: string | null;
 					mobility_score?: number;
+					// New v2.0 score columns
+					home_fast_score?: number | null;
+					adl_iadl_score?: number | null;
+					tug_test_score?: number | null;
+					frail_scale_score?: number | null;
+					mmse_score?: number | null;
+					ot_clinical_judgment_score?: number | null;
+					// Aggregate
+					aggregate_score?: number;
 					risk_category?: string;
 					score_details?: Json | null;
 					scoring_version?: string;
+					// Common
+					client_id?: string;
+					created_at?: string;
+					created_by?: string | null;
+					id?: string;
+					intake_id?: string | null;
 					updated_at?: string;
 				};
 				Relationships: [
