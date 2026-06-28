@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useFormState, useFormStatus } from "react-dom";
@@ -8,11 +8,18 @@ import {
 	updateQuoteStatusAction,
 	regenerateQuoteAction,
 	deleteQuoteAction,
+	recordOutcomeAction,
 	type CreateQuoteFormState,
 	type EditQuoteFormState,
+	type OutcomeFormState,
 } from "@/features/clients/actions/quotes";
 import type { QuoteRow, RiskAssessmentRow } from "@/types/supabase";
-import { suggestQuote, DEFAULT_BASE_PLAN_FEE } from "@/services/pricing";
+import {
+	suggestQuote,
+	DEFAULT_BASE_PLAN_FEE,
+	DECLINE_REASONS,
+	ADJUSTMENT_REASONS,
+} from "@/services/pricing";
 
 // -- Helpers ------------------------------------------------------------------
 
@@ -46,7 +53,187 @@ function formatDate(iso: string | null) {
 	});
 }
 
-// -- QuoteRow -----------------------------------------------------------------
+// -- Outcome Modal ------------------------------------------------------------
+
+function OutcomeModal({
+	quote,
+	clientId,
+	outcomeType,
+	onClose,
+}: {
+	quote: QuoteRow;
+	clientId: string;
+	outcomeType: "accepted" | "declined";
+	onClose: () => void;
+}) {
+	const boundAction = recordOutcomeAction.bind(null, clientId, quote.id);
+	const [state, formAction] = useFormState<OutcomeFormState, FormData>(
+		boundAction,
+		{}
+	);
+
+	useEffect(() => {
+		if (state.success) onClose();
+	}, [state.success, onClose]);
+
+	const isDecline = outcomeType === "declined";
+
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+			<div
+				className="w-full max-w-lg rounded-2xl p-6 space-y-4"
+				style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+			>
+				<div className="flex items-center justify-between">
+					<h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+						{isDecline ? "Record Decline" : "Record Acceptance"} — Quote v{quote.version}
+					</h3>
+					<button onClick={onClose} className="text-sm" style={{ color: "var(--muted)" }}>
+						✕
+					</button>
+				</div>
+
+				<form action={formAction} className="space-y-4">
+					<input type="hidden" name="outcome" value={outcomeType} />
+
+					{isDecline && (
+						<div>
+							<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+								Reason for Decline
+							</label>
+							<select
+								name="decline_reason"
+								className="w-full rounded-lg border px-3 py-2 text-sm"
+								style={{
+									borderColor: "var(--border-strong)",
+									color: "var(--foreground)",
+									backgroundColor: "var(--surface-strong)",
+								}}
+							>
+								<option value="">Select a reason…</option>
+								{Object.entries(DECLINE_REASONS).map(([value, label]) => (
+									<option key={value} value={value}>
+										{label}
+									</option>
+								))}
+							</select>
+						</div>
+					)}
+
+					{isDecline && (
+						<>
+							<div className="grid grid-cols-2 gap-4">
+								<div>
+									<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+										Competitor Name
+									</label>
+									<input
+										name="competitor_name"
+										type="text"
+										className="w-full rounded-lg border px-3 py-2 text-sm"
+										style={{
+											borderColor: "var(--border-strong)",
+											color: "var(--foreground)",
+											backgroundColor: "var(--surface-strong)",
+										}}
+										placeholder="e.g., Home Instead"
+									/>
+								</div>
+								<div>
+									<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+										Competitor Price ($)
+									</label>
+									<input
+										name="competitor_price"
+										type="number"
+										step="0.01"
+										min="0"
+										className="w-full rounded-lg border px-3 py-2 text-sm"
+										style={{
+											borderColor: "var(--border-strong)",
+											color: "var(--foreground)",
+											backgroundColor: "var(--surface-strong)",
+										}}
+										placeholder="0.00"
+									/>
+								</div>
+							</div>
+						</>
+					)}
+
+					<div>
+						<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+							{isDecline ? "Adjusted Final Price (if negotiated)" : "Final Agreed Price ($)"}
+						</label>
+						<input
+							name="adjusted_final_price"
+							type="number"
+							step="0.01"
+							min="0"
+							defaultValue={isDecline ? "" : quote.plan_fee}
+							className="w-full rounded-lg border px-3 py-2 text-sm"
+							style={{
+								borderColor: "var(--border-strong)",
+								color: "var(--foreground)",
+								backgroundColor: "var(--surface-strong)",
+							}}
+							placeholder={formatCurrency(quote.plan_fee)}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+							Client Feedback
+						</label>
+						<textarea
+							name="client_feedback"
+							rows={3}
+							className="w-full rounded-lg border px-3 py-2 text-sm resize-none"
+							style={{
+								borderColor: "var(--border-strong)",
+								color: "var(--foreground)",
+								backgroundColor: "var(--surface-strong)",
+							}}
+							placeholder={isDecline ? "What did the client say?" : "Any notes on the acceptance?"}
+						/>
+					</div>
+
+					{state.globalError && (
+						<p className="text-xs text-red-600">{state.globalError}</p>
+					)}
+
+					<div className="flex justify-end gap-2">
+						<button
+							type="button"
+							onClick={onClose}
+							className="px-4 py-1.5 rounded-lg text-sm border"
+							style={{ borderColor: "var(--border-strong)", color: "var(--muted-strong)" }}
+						>
+							Cancel
+						</button>
+						<OutcomeSubmitBtn isDecline={isDecline} />
+					</div>
+				</form>
+			</div>
+		</div>
+	);
+}
+
+function OutcomeSubmitBtn({ isDecline }: { isDecline: boolean }) {
+	const { pending } = useFormStatus();
+	return (
+		<button
+			type="submit"
+			disabled={pending}
+			className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+			style={{ backgroundColor: isDecline ? "#dc2626" : "#059669" }}
+		>
+			{pending ? "Saving…" : isDecline ? "Record Decline" : "Record Acceptance"}
+		</button>
+	);
+}
+
+// -- Edit Quote Form (with adjustment reason) ----------------------------------
 
 function EditQuoteForm({
 	quote,
@@ -75,6 +262,13 @@ function EditQuoteForm({
 			: ""
 	);
 
+	// Show adjustment reason fields only when values differ from suggestion
+	const hasSuggestion = quote.suggested_base_fee !== null;
+	const changedFromSuggestion =
+		hasSuggestion &&
+		(Number(baseRate) !== Number(quote.suggested_base_fee) ||
+		 Number(multiplier) !== Number(quote.suggested_multiplier));
+
 	useEffect(() => {
 		if (state.success) onClose();
 	}, [state.success, onClose]);
@@ -87,6 +281,23 @@ function EditQuoteForm({
 	return (
 		<form action={formAction} className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: "var(--border)" }}>
 			<p className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Edit Quote</p>
+
+			{/* Show suggestion comparison if available */}
+			{hasSuggestion && (
+				<div className="rounded-lg p-3 text-xs" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+					<p style={{ color: "var(--muted)" }} className="mb-2">
+						Engine suggestion: <strong>{formatCurrency(quote.suggested_base_fee)}</strong> ×{" "}
+						<strong>{Number(quote.suggested_multiplier).toFixed(2)}x</strong> ={" "}
+						<strong>{formatCurrency(quote.suggested_plan_fee)}</strong>
+					</p>
+					{changedFromSuggestion && (
+						<p style={{ color: "#9b7424" }}>
+							⚠ You&apos;ve adjusted from the suggestion — please select a reason below.
+						</p>
+					)}
+				</div>
+			)}
+
 			<div className="grid gap-4 sm:grid-cols-2">
 				<div>
 					<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
@@ -100,7 +311,7 @@ function EditQuoteForm({
 						required
 						value={baseRate}
 						onChange={(e) => setBaseRate(e.target.value)}
-						className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+						className="w-full rounded-lg border px-3 py-2 text-sm"
 						style={{ borderColor: "var(--border-strong)", color: "var(--foreground)", backgroundColor: "var(--surface-strong)" }}
 					/>
 					{state.errors?.base_plan_fee && (
@@ -118,7 +329,7 @@ function EditQuoteForm({
 						min="1"
 						value={multiplier}
 						onChange={(e) => setMultiplier(e.target.value)}
-						className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+						className="w-full rounded-lg border px-3 py-2 text-sm"
 						style={{ borderColor: "var(--border-strong)", color: "var(--foreground)", backgroundColor: "var(--surface-strong)" }}
 					/>
 					<p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>
@@ -133,7 +344,7 @@ function EditQuoteForm({
 						name="valid_until"
 						type="date"
 						defaultValue={quote.valid_until ?? ""}
-						className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+						className="w-full rounded-lg border px-3 py-2 text-sm"
 						style={{ borderColor: "var(--border-strong)", color: "var(--foreground)", backgroundColor: "var(--surface-strong)" }}
 					/>
 				</div>
@@ -147,10 +358,54 @@ function EditQuoteForm({
 					rows={4}
 					value={services}
 					onChange={(e) => setServices(e.target.value)}
-					className="w-full rounded-lg border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2"
+					className="w-full rounded-lg border px-3 py-2 text-sm resize-none"
 					style={{ borderColor: "var(--border-strong)", color: "var(--foreground)", backgroundColor: "var(--surface-strong)" }}
 				/>
 			</div>
+
+			{/* Adjustment reason (shown when changed from suggestion or always if no suggestion) */}
+			{(changedFromSuggestion || !hasSuggestion) && (
+				<div className="grid gap-4 sm:grid-cols-2">
+					<div>
+						<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+							Reason for Adjustment
+						</label>
+						<select
+							name="adjustment_reason"
+							className="w-full rounded-lg border px-3 py-2 text-sm"
+							style={{
+								borderColor: "var(--border-strong)",
+								color: "var(--foreground)",
+								backgroundColor: "var(--surface-strong)",
+							}}
+						>
+							<option value="">Select a reason…</option>
+							{Object.entries(ADJUSTMENT_REASONS).map(([value, label]) => (
+								<option key={value} value={value}>
+									{label}
+								</option>
+							))}
+						</select>
+					</div>
+					<div>
+						<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
+							Adjustment Notes
+						</label>
+						<input
+							name="adjustment_note"
+							type="text"
+							className="w-full rounded-lg border px-3 py-2 text-sm"
+							style={{
+								borderColor: "var(--border-strong)",
+								color: "var(--foreground)",
+								backgroundColor: "var(--surface-strong)",
+							}}
+							placeholder="Optional context"
+						/>
+					</div>
+				</div>
+			)}
+
 			{state.globalError && (
 				<p className="text-xs text-red-600">{state.globalError}</p>
 			)}
@@ -183,6 +438,8 @@ function EditSubmitBtn() {
 	);
 }
 
+// -- Quote Row ----------------------------------------------------------------
+
 function QuoteRow_({
 	quote,
 	clientId,
@@ -193,9 +450,10 @@ function QuoteRow_({
 	const colors = STATUS_COLORS[quote.status] ?? STATUS_COLORS.draft;
 	const [pending, setPending] = useState(false);
 	const [editing, setEditing] = useState(false);
+	const [showOutcome, setShowOutcome] = useState<null | "accepted" | "declined">(null);
 
 	const handleStatus = async (
-		status: "sent" | "accepted" | "declined" | "expired"
+		status: "sent" | "expired"
 	) => {
 		setPending(true);
 		await updateQuoteStatusAction(clientId, quote.id, status);
@@ -241,6 +499,16 @@ function QuoteRow_({
 						>
 							{STATUS_LABELS[quote.status] ?? quote.status}
 						</span>
+						{/* Show adjustment badge if human changed from suggestion */}
+						{quote.human_adjusted_at && (
+							<span
+								className="px-2 py-0.5 rounded-full text-xs font-medium"
+								style={{ backgroundColor: "rgba(199,157,67,0.12)", color: "#9b7424" }}
+								title={`Adjusted ${formatDate(quote.human_adjusted_at)}`}
+							>
+								Adjusted
+							</span>
+						)}
 					</div>
 					<p
 						className="text-2xl font-bold tracking-tight"
@@ -253,6 +521,15 @@ function QuoteRow_({
 						{Number(quote.risk_multiplier).toFixed(2)}x · Valid until{" "}
 						{formatDate(quote.valid_until)}
 					</p>
+					{/* Show suggestion comparison */}
+					{quote.suggested_plan_fee !== null && Number(quote.suggested_plan_fee) !== Number(quote.plan_fee) && (
+						<p className="text-xs" style={{ color: "var(--muted)" }}>
+							<span style={{ color: "#9b7424" }}>
+								Engine suggested {formatCurrency(quote.suggested_plan_fee)}
+							</span>{" "}
+							· Δ {formatCurrency(Number(quote.plan_fee) - Number(quote.suggested_plan_fee))}
+						</p>
+					)}
 				</div>
 
 				<div className="flex flex-wrap gap-2 items-center">
@@ -287,14 +564,14 @@ function QuoteRow_({
 						<>
 							<button
 								disabled={pending}
-								onClick={() => handleStatus("accepted")}
+								onClick={() => setShowOutcome("accepted")}
 								className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-emerald-700 disabled:opacity-50"
 							>
 								Accept
 							</button>
 							<button
 								disabled={pending}
-								onClick={() => handleStatus("declined")}
+								onClick={() => setShowOutcome("declined")}
 								className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-red-600 disabled:opacity-50"
 							>
 								Decline
@@ -338,11 +615,20 @@ function QuoteRow_({
 					onClose={() => setEditing(false)}
 				/>
 			)}
+
+			{showOutcome && (
+				<OutcomeModal
+					quote={quote}
+					clientId={clientId}
+					outcomeType={showOutcome}
+					onClose={() => setShowOutcome(null)}
+				/>
+			)}
 		</div>
 	);
 }
 
-// -- CreateQuoteForm ----------------------------------------------------------
+// -- Create Quote Form (with suggestion tracking) -------------------------------
 
 function CreateQuoteForm({
 	clientId,
@@ -367,6 +653,12 @@ function CreateQuoteForm({
 	const [baseRate, setBaseRate] = useState(DEFAULT_BASE_PLAN_FEE.toString());
 	const [multiplier, setMultiplier] = useState("1.00");
 	const [services, setServices] = useState("");
+	const [currentSuggestion, setCurrentSuggestion] = useState<{
+		base: string;
+		mult: string;
+		fee: string;
+		services: string;
+	} | null>(null);
 
 	useEffect(() => {
 		if (defaultAssessmentId) {
@@ -385,6 +677,12 @@ function CreateQuoteForm({
 		setBaseRate(s.base_plan_fee.toFixed(2));
 		setMultiplier(s.risk_multiplier.toFixed(2));
 		setServices(s.suggested_services.join("\n"));
+		setCurrentSuggestion({
+			base: s.base_plan_fee.toFixed(2),
+			mult: s.risk_multiplier.toFixed(2),
+			fee: s.plan_fee.toFixed(2),
+			services: s.suggested_services.join("\n"),
+		});
 	}
 
 	function handleAssessmentChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -397,6 +695,7 @@ function CreateQuoteForm({
 			setBaseRate(DEFAULT_BASE_PLAN_FEE.toString());
 			setMultiplier("1.00");
 			setServices("");
+			setCurrentSuggestion(null);
 		}
 	}
 
@@ -408,6 +707,11 @@ function CreateQuoteForm({
 		Math.round(
 			parseFloat(baseRate || "0") * parseFloat(multiplier || "1") * 100
 		) / 100;
+
+	const adjustedFromSuggestion =
+		currentSuggestion &&
+		(baseRate !== currentSuggestion.base ||
+		 multiplier !== currentSuggestion.mult);
 
 	return (
 		<div
@@ -436,7 +740,7 @@ function CreateQuoteForm({
 							name="assessment_id"
 							value={selectedAssessmentId}
 							onChange={handleAssessmentChange}
-							className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+							className="w-full rounded-lg border px-3 py-2 text-sm"
 							style={{
 								borderColor: "var(--border-strong)",
 								color: "var(--foreground)",
@@ -448,30 +752,30 @@ function CreateQuoteForm({
 								<option key={a.id} value={a.id}>
 									{a.risk_category.replace(/_/g, " ")} — score{" "}
 									{a.aggregate_score} —{" "}
-									{new Date(
-										a.created_at
-									).toLocaleDateString()}
+									{new Date(a.created_at).toLocaleDateString()}
 								</option>
 							))}
 						</select>
 						{selectedAssessmentId && (
-							<p
-								className="mt-1 text-xs"
-								style={{ color: "var(--accent)" }}
-							>
-								Plan fee and services auto-filled from selected
-								assessment.
+							<p className="mt-1 text-xs" style={{ color: "var(--accent)" }}>
+								Plan fee and services auto-filled from selected assessment.
 							</p>
 						)}
 					</div>
 				)}
 
+				{/* Suggestion comparison banner */}
+				{currentSuggestion && adjustedFromSuggestion && (
+					<div className="rounded-lg p-3 text-xs" style={{ backgroundColor: "rgba(199,157,67,0.08)", border: "1px solid rgba(199,157,67,0.2)" }}>
+						<p style={{ color: "#9b7424" }}>
+							⚠ You&apos;ve adjusted from the engine suggestion. The original suggestion and your changes will both be saved for training.
+						</p>
+					</div>
+				)}
+
 				<div className="grid gap-4 sm:grid-cols-2">
 					<div>
-						<label
-							className="block text-xs font-medium mb-1"
-							style={{ color: "var(--muted-strong)" }}
-						>
+						<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
 							Base Plan Fee ($) *
 						</label>
 						<input
@@ -482,7 +786,7 @@ function CreateQuoteForm({
 							required
 							value={baseRate}
 							onChange={(e) => setBaseRate(e.target.value)}
-							className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+							className="w-full rounded-lg border px-3 py-2 text-sm"
 							style={{
 								borderColor: "var(--border-strong)",
 								color: "var(--foreground)",
@@ -490,16 +794,11 @@ function CreateQuoteForm({
 							}}
 						/>
 						{state.errors?.base_plan_fee && (
-							<p className="mt-1 text-xs text-red-600">
-								{state.errors.base_plan_fee[0]}
-							</p>
+							<p className="mt-1 text-xs text-red-600">{state.errors.base_plan_fee[0]}</p>
 						)}
 					</div>
 					<div>
-						<label
-							className="block text-xs font-medium mb-1"
-							style={{ color: "var(--muted-strong)" }}
-						>
+						<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
 							Risk Multiplier
 						</label>
 						<input
@@ -509,32 +808,26 @@ function CreateQuoteForm({
 							min="1"
 							value={multiplier}
 							onChange={(e) => setMultiplier(e.target.value)}
-							className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+							className="w-full rounded-lg border px-3 py-2 text-sm"
 							style={{
 								borderColor: "var(--border-strong)",
 								color: "var(--foreground)",
 								backgroundColor: "var(--surface-strong)",
 							}}
 						/>
-						<p
-							className="mt-1 text-xs"
-							style={{ color: "var(--muted)" }}
-						>
+						<p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>
 							Plan Fee: {formatCurrency(finalRate)}
 						</p>
 					</div>
 					<div>
-						<label
-							className="block text-xs font-medium mb-1"
-							style={{ color: "var(--muted-strong)" }}
-						>
+						<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
 							Valid Until
 						</label>
 						<input
 							name="valid_until"
 							type="date"
 							defaultValue={defaultValidUntil}
-							className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+							className="w-full rounded-lg border px-3 py-2 text-sm"
 							style={{
 								borderColor: "var(--border-strong)",
 								color: "var(--foreground)",
@@ -545,10 +838,7 @@ function CreateQuoteForm({
 				</div>
 
 				<div>
-					<label
-						className="block text-xs font-medium mb-1"
-						style={{ color: "var(--muted-strong)" }}
-					>
+					<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted-strong)" }}>
 						Services Included (one per line)
 					</label>
 					<textarea
@@ -556,10 +846,8 @@ function CreateQuoteForm({
 						rows={5}
 						value={services}
 						onChange={(e) => setServices(e.target.value)}
-						placeholder={
-							"Personal care assistance\nMedication management\nFall prevention monitoring"
-						}
-						className="w-full rounded-lg border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2"
+						placeholder={"Personal care assistance\nMedication management\nFall prevention monitoring"}
+						className="w-full rounded-lg border px-3 py-2 text-sm resize-none"
 						style={{
 							borderColor: "var(--border-strong)",
 							color: "var(--foreground)",
@@ -567,6 +855,16 @@ function CreateQuoteForm({
 						}}
 					/>
 				</div>
+
+				{/* Hidden fields to store the engine suggestion for training */}
+				{currentSuggestion && (
+					<>
+						<input type="hidden" name="suggested_base_fee" value={currentSuggestion.base} />
+						<input type="hidden" name="suggested_multiplier" value={currentSuggestion.mult} />
+						<input type="hidden" name="suggested_plan_fee" value={currentSuggestion.fee} />
+						<input type="hidden" name="suggested_services" value={currentSuggestion.services} />
+					</>
+				)}
 
 				{state.globalError && (
 					<p className="text-xs text-red-600">{state.globalError}</p>
@@ -625,12 +923,8 @@ export function QuotesList({
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
-				<h2
-					className="text-sm font-semibold"
-					style={{ color: "var(--foreground)" }}
-				>
-					{initialQuotes.length} Quote
-					{initialQuotes.length !== 1 ? "s" : ""}
+				<h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+					{initialQuotes.length} Quote{initialQuotes.length !== 1 ? "s" : ""}
 				</h2>
 				{!showForm && (
 					<button

@@ -18,13 +18,9 @@ export const RISK_MULTIPLIERS: Record<string, number> = {
 };
 
 // ── Default base plan fee ($USD, one-time) ───────────────────────────────────
-// Starting fee for a standard plan before risk loading.
 export const DEFAULT_BASE_PLAN_FEE = 1500;
 
 // ── Service catalog ───────────────────────────────────────────────────────────
-// These are the planning and advisory deliverables HomeLongevityMD provides —
-// not hands-on caregiving. Each item is a concrete output the client receives
-// as part of their personalized independence plan.
 
 export const SERVICE_CATALOG = [
 	"Personalized home longevity plan",
@@ -43,11 +39,6 @@ export type CatalogService = (typeof SERVICE_CATALOG)[number];
 
 // ── Suggestion logic ──────────────────────────────────────────────────────────
 
-/**
- * Returns recommended plan deliverables based on which domains scored high
- * (>= 40 = elevated risk in that domain).
- * Every client receives the core plan and resource guide.
- */
 export function suggestServices(assessment: RiskAssessmentRow): string[] {
 	const services = new Set<string>([
 		"Personalized home longevity plan",
@@ -96,3 +87,45 @@ export function suggestQuote(assessment: RiskAssessmentRow): QuoteSuggestion {
 		suggested_services: suggestServices(assessment),
 	};
 }
+
+// ── Decline reason labels (for UI) ────────────────────────────────────────────
+
+export const DECLINE_REASONS: Record<string, string> = {
+	price_too_high: "Price too high",
+	price_too_low_suspicion: "Price seemed too low (suspicion)",
+	chose_competitor: "Chose a competitor",
+	different_services_needed: "Different services needed",
+	insurance_covers_it: "Insurance covers it",
+	family_decision: "Family decision",
+	timing_not_right: "Timing not right",
+	client_unresponsive: "Client unresponsive",
+	other: "Other",
+};
+
+export const ADJUSTMENT_REASONS: Record<string, string> = {
+	client_budget_constraint: "Client budget constraint",
+	competitive_adjustment: "Competitive adjustment",
+	service_scope_change: "Service scope change",
+	family_negotiation: "Family negotiation",
+	clinical_judgment_override: "Clinical judgment override",
+	error_correction: "Error correction",
+	other: "Other",
+};
+
+export const PAYER_TYPES: Record<string, string> = {
+	self_pay: "Self-pay",
+	family_pay: "Family pays",
+	insurance: "Insurance",
+	medicare: "Medicare",
+	medicaid: "Medicaid",
+	mixed: "Mixed",
+	unknown: "Unknown",
+};
+
+export const URGENCY_LEVELS: Record<string, string> = {
+	planning_ahead: "Planning ahead",
+	post_discharge: "Post-discharge",
+	near_crisis: "Near crisis",
+	crisis: "Crisis",
+	unknown: "Unknown",
+};

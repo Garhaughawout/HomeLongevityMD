@@ -230,6 +230,11 @@ export type Database = {
 					status: string;
 					updated_at: string;
 					zip: string | null;
+					// Payer context (for pricing ML)
+					payer_type: string | null;
+					urgency_level: string | null;
+					insurance_type: string | null;
+					primary_payer_name: string | null;
 				};
 				Insert: {
 					address_line1?: string | null;
@@ -246,6 +251,10 @@ export type Database = {
 					status?: string;
 					updated_at?: string;
 					zip?: string | null;
+					payer_type?: string | null;
+					urgency_level?: string | null;
+					insurance_type?: string | null;
+					primary_payer_name?: string | null;
 				};
 				Update: {
 					address_line1?: string | null;
@@ -262,6 +271,10 @@ export type Database = {
 					status?: string;
 					updated_at?: string;
 					zip?: string | null;
+					payer_type?: string | null;
+					urgency_level?: string | null;
+					insurance_type?: string | null;
+					primary_payer_name?: string | null;
 				};
 				Relationships: [];
 			};
@@ -324,6 +337,12 @@ export type Database = {
 					updated_at: string;
 					valid_until: string | null;
 					version: number;
+					// Suggested pricing (AI/engine suggestion before human adjustment)
+					suggested_base_fee: number | null;
+					suggested_multiplier: number | null;
+					suggested_plan_fee: number | null;
+					suggested_services: Json | null;
+					human_adjusted_at: string | null;
 				};
 				Insert: {
 					accepted_at?: string | null;
@@ -342,6 +361,11 @@ export type Database = {
 					updated_at?: string;
 					valid_until?: string | null;
 					version?: number;
+					suggested_base_fee?: number | null;
+					suggested_multiplier?: number | null;
+					suggested_plan_fee?: number | null;
+					suggested_services?: Json | null;
+					human_adjusted_at?: string | null;
 				};
 				Update: {
 					accepted_at?: string | null;
@@ -360,6 +384,11 @@ export type Database = {
 					updated_at?: string;
 					valid_until?: string | null;
 					version?: number;
+					suggested_base_fee?: number | null;
+					suggested_multiplier?: number | null;
+					suggested_plan_fee?: number | null;
+					suggested_services?: Json | null;
+					human_adjusted_at?: string | null;
 				};
 				Relationships: [
 					{
@@ -476,6 +505,110 @@ export type Database = {
 						columns: ["intake_id"];
 						isOneToOne: false;
 						referencedRelation: "client_intake";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			quote_outcomes: {
+				Row: {
+					id: string;
+					created_at: string;
+					quote_id: string;
+					client_id: string;
+					outcome: string;
+					outcome_at: string;
+					decline_reason: string | null;
+					competitor_name: string | null;
+					competitor_price: number | null;
+					client_feedback: string | null;
+					adjusted_final_price: number | null;
+					recorded_by: string | null;
+				};
+				Insert: {
+					id?: string;
+					created_at?: string;
+					quote_id: string;
+					client_id: string;
+					outcome: string;
+					outcome_at?: string;
+					decline_reason?: string | null;
+					competitor_name?: string | null;
+					competitor_price?: number | null;
+					client_feedback?: string | null;
+					adjusted_final_price?: number | null;
+					recorded_by?: string | null;
+				};
+				Update: {
+					id?: string;
+					created_at?: string;
+					quote_id?: string;
+					client_id?: string;
+					outcome?: string;
+					outcome_at?: string;
+					decline_reason?: string | null;
+					competitor_name?: string | null;
+					competitor_price?: number | null;
+					client_feedback?: string | null;
+					adjusted_final_price?: number | null;
+					recorded_by?: string | null;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "quote_outcomes_quote_id_fkey";
+						columns: ["quote_id"];
+						isOneToOne: false;
+						referencedRelation: "quotes";
+						referencedColumns: ["id"];
+					},
+					{
+						foreignKeyName: "quote_outcomes_client_id_fkey";
+						columns: ["client_id"];
+						isOneToOne: false;
+						referencedRelation: "clients";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			quote_adjustments: {
+				Row: {
+					id: string;
+					created_at: string;
+					quote_id: string;
+					field_changed: string;
+					old_value: Json | null;
+					new_value: Json | null;
+					reason_code: string | null;
+					reason_note: string | null;
+					adjusted_by: string | null;
+				};
+				Insert: {
+					id?: string;
+					created_at?: string;
+					quote_id: string;
+					field_changed: string;
+					old_value?: Json | null;
+					new_value?: Json | null;
+					reason_code?: string | null;
+					reason_note?: string | null;
+					adjusted_by?: string | null;
+				};
+				Update: {
+					id?: string;
+					created_at?: string;
+					quote_id?: string;
+					field_changed?: string;
+					old_value?: Json | null;
+					new_value?: Json | null;
+					reason_code?: string | null;
+					reason_note?: string | null;
+					adjusted_by?: string | null;
+				};
+				Relationships: [
+					{
+						foreignKeyName: "quote_adjustments_quote_id_fkey";
+						columns: ["quote_id"];
+						isOneToOne: false;
+						referencedRelation: "quotes";
 						referencedColumns: ["id"];
 					},
 				];

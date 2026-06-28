@@ -85,6 +85,24 @@ export interface ClinicalContextData {
 	drives_independently?: boolean;
 	community_participation?: string;
 
+	// ── Payer & Urgency Context (for pricing ML) ──
+	payer_type?:
+		| "self_pay"
+		| "family_pay"
+		| "insurance"
+		| "medicare"
+		| "medicaid"
+		| "mixed"
+		| "unknown";
+	urgency_level?:
+		| "planning_ahead"
+		| "post_discharge"
+		| "near_crisis"
+		| "crisis"
+		| "unknown";
+	insurance_type?: string;
+	primary_payer_name?: string;
+
 	notes?: string;
 }
 
