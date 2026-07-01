@@ -233,9 +233,6 @@ export type Database = {
 					status: string;
 					updated_at: string;
 					zip: string | null;
-					// Payer context (for pricing ML)
-					payer_type: string | null;
-					urgency_level: string | null;
 				};
 				Insert: {
 					address_line1?: string | null;
@@ -252,8 +249,6 @@ export type Database = {
 					status?: string;
 					updated_at?: string;
 					zip?: string | null;
-					payer_type?: string | null;
-					urgency_level?: string | null;
 				};
 				Update: {
 					address_line1?: string | null;
@@ -270,8 +265,6 @@ export type Database = {
 					status?: string;
 					updated_at?: string;
 					zip?: string | null;
-					payer_type?: string | null;
-					urgency_level?: string | null;
 				};
 				Relationships: [];
 			};
