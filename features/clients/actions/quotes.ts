@@ -48,20 +48,27 @@ export async function createQuoteAction(
 ): Promise<CreateQuoteFormState> {
 	const user = await requireAuthenticatedUser();
 
+	// formData.get() returns null for absent fields, which zod's .optional()
+	// rejects — normalise to undefined so optional fields can be omitted.
 	const parsed = createQuoteSchema.safeParse({
 		base_plan_fee: formData.get("base_plan_fee"),
 		risk_multiplier: formData.get("risk_multiplier") || 1.0,
-		services_included: formData.get("services_included"),
-		valid_until: formData.get("valid_until"),
-		assessment_id: formData.get("assessment_id"),
-		suggested_base_fee: formData.get("suggested_base_fee"),
-		suggested_multiplier: formData.get("suggested_multiplier"),
-		suggested_plan_fee: formData.get("suggested_plan_fee"),
-		suggested_services: formData.get("suggested_services"),
+		services_included: formData.get("services_included") ?? undefined,
+		valid_until: formData.get("valid_until") ?? undefined,
+		assessment_id: formData.get("assessment_id") ?? undefined,
+		suggested_base_fee: formData.get("suggested_base_fee") ?? undefined,
+		suggested_multiplier: formData.get("suggested_multiplier") ?? undefined,
+		suggested_plan_fee: formData.get("suggested_plan_fee") ?? undefined,
+		suggested_services: formData.get("suggested_services") ?? undefined,
 	});
 
 	if (!parsed.success) {
-		return { errors: parsed.error.flatten().fieldErrors };
+		const fieldErrors = parsed.error.flatten().fieldErrors;
+		const firstError = Object.values(fieldErrors).flat()[0];
+		return {
+			errors: fieldErrors,
+			globalError: firstError ?? "Invalid quote data. Please check the form.",
+		};
 	}
 
 	const services = parsed.data.services_included

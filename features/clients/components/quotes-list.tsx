@@ -733,6 +733,7 @@ function CreateQuoteForm({
 				</div>
 
 				<input type="hidden" name="risk_multiplier" value="1.00" />
+				<input type="hidden" name="assessment_id" value={fallbackAssessment?.id ?? ""} />
 				{currentSuggestion && (
 					<>
 						<input type="hidden" name="suggested_base_fee" value={currentSuggestion.base_fee} />
