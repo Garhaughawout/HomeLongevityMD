@@ -236,8 +236,6 @@ export type Database = {
 					// Payer context (for pricing ML)
 					payer_type: string | null;
 					urgency_level: string | null;
-					insurance_type: string | null;
-					primary_payer_name: string | null;
 				};
 				Insert: {
 					address_line1?: string | null;
@@ -256,8 +254,6 @@ export type Database = {
 					zip?: string | null;
 					payer_type?: string | null;
 					urgency_level?: string | null;
-					insurance_type?: string | null;
-					primary_payer_name?: string | null;
 				};
 				Update: {
 					address_line1?: string | null;
@@ -276,8 +272,6 @@ export type Database = {
 					zip?: string | null;
 					payer_type?: string | null;
 					urgency_level?: string | null;
-					insurance_type?: string | null;
-					primary_payer_name?: string | null;
 				};
 				Relationships: [];
 			};

@@ -78,13 +78,8 @@ function formatDate(iso: string | null) {
 
 function parseModifications(intake: ClientIntakeRow | null): HomeModificationsData | null {
 	if (!intake?.home_modifications) return null;
-	try {
-		const raw = intake.home_modifications as unknown as HomeModificationsData;
-		if (raw && Array.isArray(raw.items)) return raw;
-	} catch {
-		// ignore
-	}
-	return null;
+	const raw = intake.home_modifications as unknown as HomeModificationsData;
+	return Array.isArray(raw.items) ? raw : null;
 }
 
 // -- Outcome Modal ------------------------------------------------------------
