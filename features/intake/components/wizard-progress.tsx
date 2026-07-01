@@ -24,6 +24,7 @@ const BASE_STEPS: WizardStep[] = [
 	{ key: "mmse", label: INTAKE_SECTION_LABELS.mmse, tier: "tier1" },
 	{ key: "ot_clinical_judgment", label: INTAKE_SECTION_LABELS.ot_clinical_judgment, tier: "tier1_5" },
 	{ key: "physician_review", label: INTAKE_SECTION_LABELS.physician_review, tier: "tier3" },
+	{ key: "home_modifications", label: INTAKE_SECTION_LABELS.home_modifications, tier: "tier3_modifications" },
 	{ key: "review", label: "Review & Submit", tier: "review" },
 ];
 
@@ -55,6 +56,7 @@ const TIER_LABELS: Record<AssessmentTier | "review", string> = {
 	tier1_5: "Tier 1.5 — Clinical Judgment",
 	tier2: "Tier 2 — Triggered Assessments",
 	tier3: "Tier 3 — Physician Review",
+	tier3_modifications: "Tier 3 — Home Modifications",
 	review: "Review",
 };
 
@@ -64,6 +66,7 @@ const TIER_COLORS: Record<AssessmentTier | "review", string> = {
 	tier1_5: "text-indigo-600",
 	tier2: "text-amber-600",
 	tier3: "text-purple-600",
+	tier3_modifications: "text-teal-600",
 	review: "text-emerald-600",
 };
 

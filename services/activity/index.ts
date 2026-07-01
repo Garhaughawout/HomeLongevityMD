@@ -1,6 +1,8 @@
 import { createServerSupabaseClient } from "@/services/supabase/server";
 import type { ActivityLogRow } from "@/types/supabase";
 
+// -- Read --
+
 export async function getActivityByClientId(
 	clientId: string
 ): Promise<ActivityLogRow[]> {
@@ -26,4 +28,49 @@ export async function getRecentActivity(limit = 50): Promise<ActivityLogRow[]> {
 
 	if (error) throw new Error(error.message);
 	return data ?? [];
+}
+
+// -- Write --
+
+type EventType =
+	| "client_created"
+	| "client_updated"
+	| "client_status_changed"
+	| "intake_saved"
+	| "intake_submitted"
+	| "assessment_persisted"
+	| "quote_generated"
+	| "quote_sent"
+	| "quote_accepted"
+	| "quote_declined"
+	| "quote_deleted"
+	| "note_created"
+	| "note_deleted";
+
+type LogActivityInput = {
+	clientId: string;
+	userId: string;
+	eventType: EventType;
+	metadata?: Record<string, string | number | boolean | null>;
+};
+
+export async function logActivity({
+	clientId,
+	userId,
+	eventType,
+	metadata,
+}: LogActivityInput): Promise<void> {
+	const supabase = createServerSupabaseClient();
+	const { error } = await supabase.from("activity_log").insert({
+		client_id: clientId,
+		event_type: eventType,
+		actor_id: userId,
+		metadata: metadata ?? {},
+	});
+
+	if (error) {
+		// Don't throw — activity logging is best-effort.
+		// The primary action already succeeded.
+		console.error("Failed to log activity:", error.message);
+	}
 }

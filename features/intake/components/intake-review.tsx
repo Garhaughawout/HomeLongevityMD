@@ -123,14 +123,6 @@ export function IntakeReview({
 					</span>{" "}
 					{client.full_name}
 				</p>
-				{client.date_of_birth && (
-					<p className="mt-1 text-[color:var(--muted)]">
-						<span className="font-medium text-[color:var(--foreground)]">
-							DOB:
-						</span>{" "}
-						{client.date_of_birth}
-					</p>
-				)}
 			</div>
 
 			{error && (

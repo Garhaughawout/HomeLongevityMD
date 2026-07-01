@@ -33,9 +33,9 @@ export function SiteFrame({ children }: SiteFrameProps) {
 					<Image
 						src="/logo.png"
 						alt="HomeLongevityMD logo"
-						width={120}
-						height={48}
-						className="h-10 w-auto shrink-0 rounded-lg bg-white/95 px-2 py-1"
+						width={180}
+						height={64}
+						className="h-14 w-auto shrink-0 rounded-lg bg-white/95 px-2 py-1"
 						priority
 					/>
 				</div>

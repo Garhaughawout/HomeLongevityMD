@@ -1,0 +1,723 @@
+diff --git a/features/intake/components/intake-wizard.tsx b/features/intake/components/intake-wizard.tsx
+index 3a48368..483270b 100644
+--- a/features/intake/components/intake-wizard.tsx
++++ b/features/intake/components/intake-wizard.tsx
+@@ -16,6 +16,7 @@ import type {
+ 	Tier2EnvironmentalData,
+ 	PhysicianReviewData,
+ } from "@/types/intake";
++import type { HomeModificationsData } from "@/types/modifications";
+ import { saveSectionAction } from "@/features/intake/actions/save-section";
+ import { WizardProgress, buildWizardSteps, type WizardStep } from "./wizard-progress";
+ import { SectionClinicalContext } from "./section-clinical-context";
+@@ -30,6 +31,7 @@ import { SectionTier2Cognitive } from "./section-tier2-cognitive";
+ import { SectionTier2Frailty } from "./section-tier2-frailty";
+ import { SectionTier2Environmental } from "./section-tier2-environmental";
+ import { SectionPhysicianReview } from "./section-physician-review";
++import { SectionHomeModifications } from "./section-home-modifications";
+ import { IntakeReview } from "./intake-review";
+ 
+ // ── Types ─────────────────────────────────────────────────────────────────────
+@@ -125,6 +127,9 @@ export function IntakeWizard({ client, intake }: Props) {
+ 	const [physicianReview, setPhysicianReview] = useState<PhysicianReviewData>(
+ 		(intake?.physician_review as PhysicianReviewData) ?? {}
+ 	);
++	const [homeModifications, setHomeModifications] = useState<HomeModificationsData>(
++		(intake?.home_modifications as HomeModificationsData) ?? { items: [] }
++	);
+ 
+ 	const [isPending, startTransition] = useTransition();
+ 
+@@ -199,6 +204,8 @@ export function IntakeWizard({ client, intake }: Props) {
+ 				return { key: step.key, data: tier2Environmental };
+ 			case "physician_review":
+ 				return { key: step.key, data: physicianReview };
++			case "home_modifications":
++				return { key: step.key, data: homeModifications };
+ 			default:
+ 				return null;
+ 		}
+diff --git a/features/intake/components/section-home-modifications.tsx b/features/intake/components/section-home-modifications.tsx
+new file mode 100644
+index 0000000..475a799
+--- /dev/null
++++ b/features/intake/components/section-home-modifications.tsx
+@@ -0,0 +1,330 @@
++"use client";
++
++import { useState } from "react";
++import type { HomeModificationsData, ModificationItem, ModificationCategory, ModificationPriority } from "@/types/modifications";
++import {
++	MODIFICATION_CATALOG,
++	MODIFICATION_CATALOG_MAP,
++	PRIORITY_LABELS,
++	PRIORITY_COLORS,
++	CATEGORY_LABELS,
++} from "@/types/modifications";
++import { FieldGroup, TextareaField } from "./fields";
++
++type Props = {
++	value: HomeModificationsData;
++	onChange: (v: HomeModificationsData) => void;
++};
++
++let idCounter = 0;
++function genId(): string {
++	idCounter += 1;
++	return `mod-${Date.now()}-${idCounter}`;
++}
++
++export function SectionHomeModifications({ value, onChange }: Props) {
++	const [selectedType, setSelectedType] = useState("");
++	const [customMode, setCustomMode] = useState(false);
++
++	function addItem(modType: string, overrides?: Partial<ModificationItem>) {
++		const catalogEntry = MODIFICATION_CATALOG_MAP[modType];
++		const item: ModificationItem = {
++			id: genId(),
++			category: (catalogEntry?.category ?? "general") as ModificationCategory,
++			modification_type: modType,
++			description: catalogEntry?.label ?? modType,
++			estimated_cost: catalogEntry?.default_cost ?? 0,
++			priority: "recommended",
++			...overrides,
++		};
++		const newItems = [...value.items, item];
++		onChange({ ...value, items: newItems });
++	}
++
++	function addCustomItem() {
++		const item: ModificationItem = {
++			id: genId(),
++			category: "general",
++			modification_type: "custom",
++			description: "",
++			estimated_cost: 0,
++			priority: "recommended",
++		};
++		const newItems = [...value.items, item];
++		onChange({ ...value, items: newItems });
++	}
++
++	function updateItem(id: string, field: keyof ModificationItem, val: unknown) {
++		const newItems = value.items.map((item) =>
++			item.id === id ? { ...item, [field]: val } : item
++		);
++		onChange({ ...value, items: newItems });
++	}
++
++	function removeItem(id: string) {
++		const newItems = value.items.filter((item) => item.id !== id);
++		onChange({ ...value, items: newItems });
++	}
++
++	const totalCost = value.items.reduce((sum, item) => sum + (item.estimated_cost ?? 0), 0);
++
++	// Group catalog by category for the dropdown
++	const catalogByCategory: Record<string, typeof MODIFICATION_CATALOG> = {};
++	for (const entry of MODIFICATION_CATALOG) {
++		if (!catalogByCategory[entry.category]) catalogByCategory[entry.category] = [];
++		catalogByCategory[entry.category].push(entry);
++	}
++
++	return (
++		<div className="space-y-6">
++			<div
++				className="rounded-lg p-4 text-sm"
++				style={{
++					background: "var(--surface)",
++					border: "1px solid var(--border)",
++				}}
++			>
++				<p style={{ color: "var(--muted)" }}>
++					Record recommended home modifications based on assessment findings.
++					This data feeds future pricing models.
++				</p>
++			</div>
++
++			{/* Add from catalog */}
++			<FieldGroup legend="Add Modification">
++				<div className="flex gap-2">
++					<select
++						value={selectedType}
++						onChange={(e) => setSelectedType(e.target.value)}
++						className="flex-1 rounded-lg border px-3 py-2 text-sm"
++						style={{
++							borderColor: "var(--border-strong)",
++							color: "var(--foreground)",
++							backgroundColor: "var(--surface-strong)",
++						}}
++					>
++						<option value="">Select from catalog...</option>
++						{Object.entries(catalogByCategory).map(([cat, items]) => (
++							<optgroup key={cat} label={CATEGORY_LABELS[cat as ModificationCategory] ?? cat}>
++								{items.map((entry) => (
++									<option key={entry.type} value={entry.type}>
++										{entry.label} (${entry.default_cost})
++									</option>
++								))}
++							</optgroup>
++						))}
++					</select>
++					<button
++						type="button"
++						disabled={!selectedType}
++						onClick={() => {
++							addItem(selectedType);
++							setSelectedType("");
++						}}
++						className="shrink-0 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
++						style={{ backgroundColor: "var(--navy)" }}
++					>
++						Add
++					</button>
++					<button
++						type="button"
++						onClick={() => {
++							addCustomItem();
++							setCustomMode(true);
++						}}
++						className="shrink-0 rounded-lg px-4 py-2 text-sm font-medium border"
++						style={{
++							borderColor: "var(--border-strong)",
++							color: "var(--foreground)",
++						}}
++					>
++						+ Custom
++					</button>
++				</div>
++			</FieldGroup>
++
++			{/* Items list */}
++			{value.items.length > 0 && (
++				<div className="space-y-3">
++					{value.items.map((item) => (
++						<div
++							key={item.id}
++							className="rounded-xl p-4 space-y-3"
++							style={{
++								background: "var(--surface)",
++								border: "1px solid var(--border)",
++							}}
++						>
++							<div className="flex items-start justify-between gap-4">
++								<div className="flex-1 space-y-3">
++									{/* Description / label */}
++									<div>
++										<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
++											Modification
++										</label>
++										<input
++											type="text"
++											value={item.description ?? ""}
++											onChange={(e) => updateItem(item.id, "description", e.target.value)}
++											className="w-full rounded-lg border px-3 py-2 text-sm"
++											style={{
++												borderColor: "var(--border-strong)",
++												color: "var(--foreground)",
++												backgroundColor: "var(--surface-strong)",
++											}}
++											placeholder="e.g., Install grab bars in bathroom"
++										/>
++									</div>
++
++									<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
++										{/* Category */}
++										<div>
++											<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
++												Category
++											</label>
++											<select
++												value={item.category}
++												onChange={(e) => updateItem(item.id, "category", e.target.value)}
++												className="w-full rounded-lg border px-2 py-1.5 text-xs"
++												style={{
++													borderColor: "var(--border-strong)",
++													color: "var(--foreground)",
++													backgroundColor: "var(--surface-strong)",
++												}}
++											>
++												{Object.entries(CATEGORY_LABELS).map(([val, label]) => (
++													<option key={val} value={val}>{label}</option>
++												))}
++											</select>
++										</div>
++
++										{/* Priority */}
++										<div>
++											<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
++												Priority
++											</label>
++											<select
++												value={item.priority}
++												onChange={(e) => updateItem(item.id, "priority", e.target.value)}
++												className="w-full rounded-lg border px-2 py-1.5 text-xs"
++												style={{
++													borderColor: "var(--border-strong)",
++													color: "var(--foreground)",
++													backgroundColor: "var(--surface-strong)",
++												}}
++											>
++												{Object.entries(PRIORITY_LABELS).map(([val, label]) => (
++													<option key={val} value={val}>{label}</option>
++												))}
++											</select>
++										</div>
++
++										{/* Estimated cost */}
++										<div>
++											<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
++												Est. Cost ($)
++											</label>
++											<input
++												type="number"
++												min="0"
++												step="1"
++												value={item.estimated_cost ?? 0}
++												onChange={(e) => updateItem(item.id, "estimated_cost", Number(e.target.value))}
++												className="w-full rounded-lg border px-2 py-1.5 text-xs"
++												style={{
++													borderColor: "var(--border-strong)",
++													color: "var(--foreground)",
++													backgroundColor: "var(--surface-strong)",
++												}}
++											/>
++										</div>
++
++										{/* Triggered by */}
++										<div>
++											<label className="block text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
++												Triggered By
++											</label>
++											<input
++												type="text"
++												value={item.triggered_by ?? ""}
++												onChange={(e) => updateItem(item.id, "triggered_by", e.target.value)}
++												className="w-full rounded-lg border px-2 py-1.5 text-xs"
++												style={{
++													borderColor: "var(--border-strong)",
++													color: "var(--foreground)",
++													backgroundColor: "var(--surface-strong)",
++												}}
++												placeholder="e.g., HOME FAST bathroom"
++											/>
++										</div>
++									</div>
++								</div>
++
++								{/* Remove button */}
++								<button
++									type="button"
++									onClick={() => removeItem(item.id)}
++									className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium"
++									style={{
++										color: "#dc2626",
++										border: "1px solid var(--border-strong)",
++									}}
++								>
++									Remove
++								</button>
++							</div>
++
++							{/* Priority indicator */}
++							<div className="flex items-center gap-2">
++								<span
++									className="h-2 w-2 rounded-full"
++									style={{ backgroundColor: PRIORITY_COLORS[item.priority] }}
++								/>
++								<span className="text-xs" style={{ color: "var(--muted)" }}>
++									{PRIORITY_LABELS[item.priority]}
++								</span>
++							</div>
++						</div>
++					))}
++				</div>
++			) : (
++				<div
++					className="rounded-xl p-8 text-center"
++					style={{
++						background: "var(--surface)",
++						border: "1px solid var(--border)",
++					}}
++				>
++					<p className="text-sm" style={{ color: "var(--muted)" }}>
++						No modifications added yet. Select from the catalog above or add a custom item.
++					</p>
++				</div>
++			)}
++
++			{/* Total */}
++			{value.items.length > 0 && (
++				<div
++					className="flex items-center justify-between rounded-xl px-4 py-3"
++					style={{
++						background: "var(--surface)",
++						border: "1px solid var(--border)",
++					}}
++				>
++					<span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
++						Total Estimated Cost
++					</span>
++					<span className="text-lg font-bold tabular-nums" style={{ color: "var(--navy)" }}>
++						${totalCost.toLocaleString()}
++					</span>
++				</div>
++			)}
++
++			<TextareaField
++				label="Assessor Notes"
++				value={value.notes ?? ""}
++				onChange={(v) => onChange({ ...value, notes: v })}
++				placeholder="Overall approach, sequencing, client preferences..."
++			/>
++		</div>
++	);
++}
+diff --git a/features/intake/components/wizard-progress.tsx b/features/intake/components/wizard-progress.tsx
+index fbfe0ea..c1701a1 100644
+--- a/features/intake/components/wizard-progress.tsx
++++ b/features/intake/components/wizard-progress.tsx
+@@ -24,6 +24,7 @@ const BASE_STEPS: WizardStep[] = [
+ 	{ key: "mmse", label: INTAKE_SECTION_LABELS.mmse, tier: "tier1" },
+ 	{ key: "ot_clinical_judgment", label: INTAKE_SECTION_LABELS.ot_clinical_judgment, tier: "tier1_5" },
+ 	{ key: "physician_review", label: INTAKE_SECTION_LABELS.physician_review, tier: "tier3" },
++	{ key: "home_modifications", label: INTAKE_SECTION_LABELS.home_modifications, tier: "tier3" },
+ 	{ key: "review", label: "Review & Submit", tier: "review" },
+ ];
+ 
+diff --git a/services/pricing/index.ts b/services/pricing/index.ts
+index 82e1f5f..216f221 100644
+--- a/services/pricing/index.ts
++++ b/services/pricing/index.ts
+@@ -6,6 +6,8 @@
+ // ─────────────────────────────────────────────────────────────────────────────
+ 
+ import type { RiskAssessmentRow } from "@/types/supabase";
++import type { HomeModificationsData, ModificationItem } from "@/types/modifications";
++import { MODIFICATION_CATALOG_MAP } from "@/types/modifications";
+ 
+ // ── Risk → multiplier map ─────────────────────────────────────────────────────
+ 
+@@ -115,10 +117,6 @@ export const ADJUSTMENT_REASONS: Record<string, string> = {
+ export const PAYER_TYPES: Record<string, string> = {
+ 	self_pay: "Self-pay",
+ 	family_pay: "Family pays",
+-	insurance: "Insurance",
+-	medicare: "Medicare",
+-	medicaid: "Medicaid",
+-	mixed: "Mixed",
+ 	unknown: "Unknown",
+ };
+ 
+@@ -129,3 +127,57 @@ export const URGENCY_LEVELS: Record<string, string> = {
+ 	crisis: "Crisis",
+ 	unknown: "Unknown",
+ };
++
++// -- Modification-based pricing (for ML training data) -------------------------
++
++/** Default markup percentage applied to modification costs */
++export const DEFAULT_MARKUP_PERCENT = 20;
++
++/** Default assessment/consultation fee */
++export const DEFAULT_ASSESSMENT_FEE = 500;
++
++export type ModificationLineItem = {
++	category: string;
++	modification_type: string;
++	description: string;
++	estimated_cost: number;
++	priority: string;
++};
++
++export type ModificationPricingResult = {
++	line_items: ModificationLineItem[];
++	total_modification_cost: number;
++	markup_percent: number;
++	markup_amount: number;
++	assessment_fee: number;
++	total_quote: number;
++};
++
++export function priceFromModifications(
++	mods: HomeModificationsData,
++	options?: { markupPercent?: number; assessmentFee?: number }
++): ModificationPricingResult {
++	const markupPercent = options?.markupPercent ?? DEFAULT_MARKUP_PERCENT;
++	const assessmentFee = options?.assessmentFee ?? DEFAULT_ASSESSMENT_FEE;
++
++	const lineItems: ModificationLineItem[] = mods.items.map((item) => ({
++		category: item.category,
++		modification_type: item.modification_type,
++		description: item.description ?? item.modification_type,
++		estimated_cost: item.estimated_cost,
++		priority: item.priority,
++	}));
++
++	const totalModCost = lineItems.reduce((sum, item) => sum + item.estimated_cost, 0);
++	const markupAmount = Math.round(totalModCost * (markupPercent / 100) * 100) / 100;
++	const totalQuote = totalModCost + markupAmount + assessmentFee;
++
++	return {
++		line_items: lineItems,
++		total_modification_cost: totalModCost,
++		markup_percent: markupPercent,
++		markup_amount: markupAmount,
++		assessment_fee: assessmentFee,
++		total_quote: totalQuote,
++	};
++}
+diff --git a/supabase/migrations/20260629000001_home_modifications.sql b/supabase/migrations/20260629000001_home_modifications.sql
+new file mode 100644
+index 0000000..4ee19ae
+--- /dev/null
++++ b/supabase/migrations/20260629000001_home_modifications.sql
+@@ -0,0 +1,8 @@
++-- Add home_modifications JSONB column to client_intake
++-- Stores structured modification recommendations for ML training data
++
++ALTER TABLE client_intake
++ADD COLUMN IF NOT EXISTS home_modifications JSONB DEFAULT NULL;
++
++COMMENT ON COLUMN client_intake.home_modifications IS
++  'Structured home modification recommendations: items with category, type, cost, priority, and triggering assessment finding. Feeds ML pricing model.';
+diff --git a/types/domain.ts b/types/domain.ts
+index 30089c9..f4ce719 100644
+--- a/types/domain.ts
++++ b/types/domain.ts
+@@ -42,7 +42,8 @@ export type IntakeSectionKey =
+ 	| "tier2_cognitive"
+ 	| "tier2_frailty"
+ 	| "tier2_environmental"
+-	| "physician_review";
++	| "physician_review"
++	| "home_modifications";
+ 
+ export const INTAKE_SECTIONS = [
+ 	"clinical_context",
+@@ -57,6 +58,7 @@ export const INTAKE_SECTIONS = [
+ 	"tier2_frailty",
+ 	"tier2_environmental",
+ 	"physician_review",
++	"home_modifications",
+ ] as const satisfies ReadonlyArray<IntakeSectionKey>;
+ 
+ export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
+@@ -72,6 +74,7 @@ export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
+ 	tier2_frailty: "Frailty & Medical Pathway",
+ 	tier2_environmental: "Environmental Hazard Pathway",
+ 	physician_review: "Physician Review",
++	home_modifications: "Home Modifications",
+ };
+ 
+ // Tier classification for UI grouping
+@@ -90,6 +93,7 @@ export const INTAKE_SECTION_TIERS: Record<IntakeSectionKey, AssessmentTier> = {
+ 	tier2_frailty: "tier2",
+ 	tier2_environmental: "tier2",
+ 	physician_review: "tier3",
++	home_modifications: "tier3",
+ };
+ 
+ // Which Tier 2 sections are triggered by which Tier 1 results
+diff --git a/types/intake.ts b/types/intake.ts
+index 5bd45e7..e5b135e 100644
+--- a/types/intake.ts
++++ b/types/intake.ts
+@@ -1,3 +1,5 @@
++import type { HomeModificationsData } from "@/types/modifications";
++
+ // ─────────────────────────────────────────────────────────────────────────────
+ // Intake section data shapes
+ // These interfaces type the JSONB columns on the client_intake table.
+@@ -54,7 +56,7 @@ export interface ClinicalContextData {
+ 		| "other";
+ 	home_type_other?: string;
+ 	home_has_stairs?: boolean;
+-	primary_caregiver?: string;
++	has_caregiver?: boolean;
+ 
+ 	// ── Medical Snapshot ──
+ 	/** Number of hospitalisations in the past 12 months */
+@@ -65,7 +67,6 @@ export interface ClinicalContextData {
+ 	falls_past_12mo?: number;
+ 	fall_resulted_in_injury?: boolean;
+ 	assistive_devices?: string[];
+-	major_diagnoses?: string;
+ 	vision_impairment?: YesNoUnknown;
+ 	hearing_impairment?: YesNoUnknown;
+ 	medication_count?: number;
+@@ -89,10 +90,6 @@ export interface ClinicalContextData {
+ 	payer_type?:
+ 		| "self_pay"
+ 		| "family_pay"
+-		| "insurance"
+-		| "medicare"
+-		| "medicaid"
+-		| "mixed"
+ 		| "unknown";
+ 	urgency_level?:
+ 		| "planning_ahead"
+@@ -100,8 +97,6 @@ export interface ClinicalContextData {
+ 		| "near_crisis"
+ 		| "crisis"
+ 		| "unknown";
+-	insurance_type?: string;
+-	primary_payer_name?: string;
+ 
+ 	notes?: string;
+ }
+@@ -560,6 +555,8 @@ export interface ClientIntakeSections {
+ 	/** Conditional — triggered when HOME FAST hazard count exceeds threshold */
+ 	tier2_environmental: Tier2EnvironmentalData | null;
+ 	physician_review: PhysicianReviewData | null;
++	/** Post-assessment modification recommendations */
++	home_modifications: HomeModificationsData | null;
+ }
+ 
+ /** Union of all intake section data types */
+@@ -575,4 +572,5 @@ export type IntakeSectionData =
+ 	| Tier2CognitiveData
+ 	| Tier2FrailtyData
+ 	| Tier2EnvironmentalData
+-	| PhysicianReviewData;
++	| PhysicianReviewData
++	| HomeModificationsData;
+diff --git a/types/modifications.ts b/types/modifications.ts
+new file mode 100644
+index 0000000..f14dacc
+--- /dev/null
++++ b/types/modifications.ts
+@@ -0,0 +1,133 @@
++import type { YesNoNa } from "@/types/intake";
++
++// ─────────────────────────────────────────────────────────────────────────────
++// Home Modification Recommendations
++//
++// Collected after assessment completion.  Structured data capturing which
++// modifications the home needs, estimated costs, priority, and which
++// assessment finding triggered the recommendation.
++//
++// This data feeds the future ML pricing model:
++//   Input: assessment scores + clinical context + home type + hazards
++//   Output: which modifications, what costs, was the quote accepted
++// ─────────────────────────────────────────────────────────────────────────────
++
++/** Modification categories matching rooms/areas of the home */
++export type ModificationCategory =
++	| "bathroom"
++	| "entrance"
++	| "kitchen"
++	| "stairs"
++	| "bedroom"
++	| "hallway"
++	| "general"
++	| "outdoor";
++
++/** Priority levels for modifications */
++export type ModificationPriority =
++	| "safety_critical"
++	| "recommended"
++	| "optional";
++
++/** A single recommended home modification */
++export interface ModificationItem {
++	id: string;
++	category: ModificationCategory;
++	modification_type: string;
++	description?: string;
++	estimated_cost: number;
++	priority: ModificationPriority;
++	/** Which assessment finding triggered this recommendation */
++	triggered_by?: string;
++	/** Was this actually completed (tracked later, after quote acceptance) */
++	completed?: boolean;
++}
++
++/** All home modification recommendations for an intake */
++export interface HomeModificationsData {
++	items: ModificationItem[];
++	/** Total estimated cost of all items */
++	total_estimated_cost?: number;
++	/** Assessor notes on overall approach */
++	notes?: string;
++}
++
++// ── Modification catalog with default costs ──────────────────────────────────
++
++export const MODIFICATION_CATALOG: Array<{
++	category: ModificationCategory;
++	type: string;
++	label: string;
++	default_cost: number;
++}> = [
++	// Bathroom
++	{ category: "bathroom", type: "grab_bars", label: "Grab bars (toilet)", default_cost: 200 },
++	{ category: "bathroom", type: "grab_bars_shower", label: "Grab bars (shower/tub)", default_cost: 250 },
++	{ category: "bathroom", type: "walk_in_tub", label: "Walk-in tub conversion", default_cost: 3000 },
++	{ category: "bathroom", type: "roll_in_shower", label: "Roll-in shower conversion", default_cost: 5000 },
++	{ category: "bathroom", type: "raised_toilet", label: "Raised toilet seat / ADA toilet", default_cost: 150 },
++	{ category: "bathroom", type: "non_slip_flooring", label: "Non-slip flooring", default_cost: 800 },
++	{ category: "bathroom", type: "handheld_showerhead", label: "Handheld showerhead", default_cost: 100 },
++	{ category: "bathroom", type: "shower_bench", label: "Shower bench/seat", default_cost: 200 },
++	// Entrance
++	{ category: "entrance", type: "ramp", label: "Wheelchair ramp", default_cost: 1500 },
++	{ category: "entrance", type: "threshold_ramp", label: "Threshold ramp", default_cost: 150 },
++	{ category: "entrance", type: "door_widening", label: "Doorway widening", default_cost: 800 },
++	{ category: "entrance", type: "lever_handles", label: "Lever door handles", default_cost: 100 },
++	{ category: "entrance", type: "automatic_door", label: "Automatic door opener", default_cost: 1200 },
++	// Stairs
++	{ category: "stairs", type: "stairlift", label: "Stairlift installation", default_cost: 4000 },
++	{ category: "stairs", type: "second_handrail", label: "Second handrail", default_cost: 350 },
++	{ category: "stairs", type: "non_slip_treads", label: "Non-slip stair treads", default_cost: 300 },
++	{ category: "stairs", type: "contrasting_edging", label: "Contrasting edge strips", default_cost: 200 },
++	// Kitchen
++	{ category: "kitchen", type: "lowered_counters", label: "Lowered countertops", default_cost: 2500 },
++	{ category: "kitchen", type: "pull_out_shelves", label: "Pull-out shelving", default_cost: 600 },
++	{ category: "kitchen", type: "lever_faucets", label: "Lever faucet handles", default_cost: 150 },
++	{ category: "kitchen", type: "side_open_oven", label: "Side-opening oven", default_cost: 1800 },
++	// Bedroom
++	{ category: "bedroom", type: "hospital_bed", label: "Adjustable/hospital bed", default_cost: 1200 },
++	{ category: "bedroom", type: "bed_rails", label: "Bed rails", default_cost: 150 },
++	{ category: "bedroom", type: "transfer_pole", label: "Transfer pole", default_cost: 300 },
++	// Hallway
++	{ category: "hallway", type: "grab_bar_hallway", label: "Hallway grab bars", default_cost: 400 },
++	{ category: "hallway", type: "lighting_upgrade", label: "Improved lighting", default_cost: 500 },
++	// General
++	{ category: "general", type: "remove_throw_rugs", label: "Remove throw rugs", default_cost: 50 },
++	{ category: "general", type: "secure_loose_carpets", label: "Secure loose carpeting", default_cost: 300 },
++	{ category: "general", type: "doorway_threshold_fix", label: "Fix doorway thresholds", default_cost: 250 },
++	{ category: "general", type: "smart_home_safety", label: "Smart home safety (sensors, alerts)", default_cost: 800 },
++	{ category: "general", type: "emergency_response_system", label: "Emergency response system", default_cost: 500 },
++	// Outdoor
++	{ category: "outdoor", type: "handrails_outdoor", label: "Outdoor handrails", default_cost: 600 },
++	{ category: "outdoor", type: "path_repair", label: "Walkway/path repair", default_cost: 1000 },
++	{ category: "outdoor", type: "lighting_outdoor", label: "Outdoor motion lighting", default_cost: 400 },
++	{ category: "outdoor", type: "step_repair", label: "Step repair/replacement", default_cost: 500 },
++];
++
++export const MODIFICATION_CATALOG_MAP: Record<string, typeof MODIFICATION_CATALOG[number]> = Object.fromEntries(
++	MODIFICATION_CATALOG.map((m) => [m.type, m])
++);
++
++export const PRIORITY_LABELS: Record<ModificationPriority, string> = {
++	safety_critical: "Safety Critical",
++	recommended: "Recommended",
++	optional: "Optional",
++};
++
++export const PRIORITY_COLORS: Record<ModificationPriority, string> = {
++	safety_critical: "#dc2626",
++	recommended: "#c79d43",
++	optional: "#6b7280",
++};
++
++export const CATEGORY_LABELS: Record<ModificationCategory, string> = {
++	bathroom: "Bathroom",
++	entrance: "Entrance",
++	kitchen: "Kitchen",
++	stairs: "Stairs",
++	bedroom: "Bedroom",
++	hallway: "Hallway",
++	general: "General",
++	outdoor: "Outdoor",
++};

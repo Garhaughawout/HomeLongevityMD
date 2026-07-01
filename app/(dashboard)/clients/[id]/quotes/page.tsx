@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getClientById } from "@/services/clients";
 import { getQuotesByClientId } from "@/services/quotes";
 import { getAssessmentsByClientId } from "@/services/assessments";
+import { getLatestIntakeByClientId } from "@/services/intake";
 import { QuotesList } from "@/features/clients/components/quotes-list";
 
 type Props = {
@@ -13,10 +14,11 @@ export default async function ClientQuotesPage({
 	params,
 	searchParams,
 }: Props) {
-	const [client, quotes, assessments] = await Promise.all([
+	const [client, quotes, assessments, intake] = await Promise.all([
 		getClientById(params.id),
 		getQuotesByClientId(params.id),
 		getAssessmentsByClientId(params.id),
+		getLatestIntakeByClientId(params.id),
 	]);
 	if (!client) notFound();
 
@@ -25,6 +27,7 @@ export default async function ClientQuotesPage({
 			clientId={client.id}
 			initialQuotes={quotes}
 			assessments={assessments}
+			intake={intake}
 			defaultAssessmentId={searchParams.assessment_id}
 		/>
 	);

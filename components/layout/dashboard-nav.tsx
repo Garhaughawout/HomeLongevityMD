@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// ── Icon components ────────────────────────────────────────────────────────────
+// -- Icons --
 
 function HomeIcon() {
 	return (
@@ -41,60 +41,6 @@ function UsersIcon() {
 	);
 }
 
-function ClipboardIcon() {
-	return (
-		<svg
-			fill="none"
-			viewBox="0 0 24 24"
-			strokeWidth={1.75}
-			stroke="currentColor"
-			className="h-full w-full"
-		>
-			<path
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-			/>
-		</svg>
-	);
-}
-
-function DocumentIcon() {
-	return (
-		<svg
-			fill="none"
-			viewBox="0 0 24 24"
-			strokeWidth={1.75}
-			stroke="currentColor"
-			className="h-full w-full"
-		>
-			<path
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-			/>
-		</svg>
-	);
-}
-
-function ClockIcon() {
-	return (
-		<svg
-			fill="none"
-			viewBox="0 0 24 24"
-			strokeWidth={1.75}
-			stroke="currentColor"
-			className="h-full w-full"
-		>
-			<path
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-	);
-}
-
 function BookIcon() {
 	return (
 		<svg
@@ -113,7 +59,7 @@ function BookIcon() {
 	);
 }
 
-// ── Nav definitions ────────────────────────────────────────────────────────────
+// -- Nav definitions --
 
 type NavItem = {
 	label: string;
@@ -125,9 +71,6 @@ type NavItem = {
 const mainNav: ReadonlyArray<NavItem> = [
 	{ label: "Dashboard", href: "/dashboard", icon: <HomeIcon />, exact: true },
 	{ label: "Clients", href: "/clients", icon: <UsersIcon /> },
-	{ label: "Assessments", href: "/assessments", icon: <ClipboardIcon /> },
-	{ label: "Quotes", href: "/quotes", icon: <DocumentIcon /> },
-	{ label: "Activity", href: "/activity", icon: <ClockIcon /> },
 ];
 
 const secondaryNav: NavItem = {
@@ -142,7 +85,7 @@ function isActive(pathname: string, href: string, exact?: boolean): boolean {
 	return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// ── Component ──────────────────────────────────────────────────────────────────
+// -- Component --
 
 type DashboardNavProps = {
 	orientation?: "vertical" | "horizontal";

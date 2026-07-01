@@ -64,8 +64,8 @@ export function ClientsToolbar() {
 	}
 
 	return (
-		<div
-			className={`flex flex-wrap items-center gap-3 transition-opacity ${isPending ? "opacity-60" : ""}`}
+			<div
+			className={`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center transition-opacity ${isPending ? "opacity-60" : ""}`}
 		>
 			{/* Search */}
 			<form

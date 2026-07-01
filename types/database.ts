@@ -118,6 +118,7 @@ export type Database = {
 					created_by: string | null;
 					id: string;
 					physician_review: Json | null;
+					home_modifications: Json | null;
 					status: string;
 					submitted_at: string | null;
 					submitted_by: string | null;
@@ -158,6 +159,7 @@ export type Database = {
 					created_by?: string | null;
 					id?: string;
 					physician_review?: Json | null;
+					home_modifications?: Json | null;
 					status?: string;
 					submitted_at?: string | null;
 					submitted_by?: string | null;
@@ -198,6 +200,7 @@ export type Database = {
 					created_by?: string | null;
 					id?: string;
 					physician_review?: Json | null;
+					home_modifications?: Json | null;
 					status?: string;
 					submitted_at?: string | null;
 					submitted_by?: string | null;

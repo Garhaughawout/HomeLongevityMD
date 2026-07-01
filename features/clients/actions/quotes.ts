@@ -11,13 +11,14 @@ import {
 	deleteQuote,
 	recordQuoteOutcome,
 } from "@/services/quotes";
+import { logActivity } from "@/services/activity";
 import type { QuoteSuggestion } from "@/services/pricing";
 
 const createQuoteSchema = z.object({
 	base_plan_fee: z.coerce.number().positive("Fee must be a positive number"),
 	risk_multiplier: z.coerce
 		.number()
-		.min(1, "Multiplier must be ≥ 1.0")
+		.min(1, "Multiplier must be >= 1.0")
 		.default(1.0),
 	services_included: z.string().trim().optional(),
 	valid_until: z
@@ -95,11 +96,19 @@ export async function createQuoteAction(
 			userId: user.id,
 			suggestion,
 		});
+
+		await logActivity({
+			clientId,
+			userId: user.id,
+			eventType: "quote_generated",
+			metadata: { plan_fee: parsed.data.base_plan_fee },
+		});
 	} catch {
 		return { globalError: "Failed to create quote. Please try again." };
 	}
 
 	revalidatePath(`/clients/${clientId}/quotes`);
+	revalidatePath(`/clients/${clientId}/activity`);
 	return { success: true };
 }
 
@@ -107,16 +116,22 @@ export async function deleteQuoteAction(
 	clientId: string,
 	quoteId: string
 ): Promise<void> {
-	await requireAuthenticatedUser();
+	const user = await requireAuthenticatedUser();
 	await deleteQuote(quoteId);
+	await logActivity({
+		clientId,
+		userId: user.id,
+		eventType: "quote_deleted",
+	});
 	revalidatePath(`/clients/${clientId}/quotes`);
+	revalidatePath(`/clients/${clientId}/activity`);
 }
 
 const editQuoteSchema = z.object({
 	base_plan_fee: z.coerce.number().positive("Fee must be a positive number"),
 	risk_multiplier: z.coerce
 		.number()
-		.min(1, "Multiplier must be ≥ 1.0")
+		.min(1, "Multiplier must be >= 1.0")
 		.default(1.0),
 	services_included: z.string().trim().optional(),
 	valid_until: z
@@ -182,7 +197,7 @@ export async function updateQuoteAction(
 	return { success: true };
 }
 
-// ── Quote outcome action ──────────────────────────────────────────────────────
+// -- Quote outcome action --
 
 const outcomeSchema = z.object({
 	outcome: z.enum(["accepted", "declined", "expired", "withdrawn"]),
@@ -232,11 +247,25 @@ export async function recordOutcomeAction(
 			adjustedFinalPrice: parsed.data.adjusted_final_price || undefined,
 			userId: user.id,
 		});
-	} catch (e) {
+
+		const eventType =
+			parsed.data.outcome === "accepted" ? "quote_accepted" : "quote_declined";
+
+		await logActivity({
+			clientId,
+			userId: user.id,
+			eventType,
+			metadata: {
+				reason: parsed.data.decline_reason ?? null,
+				final_price: parsed.data.adjusted_final_price ?? null,
+			},
+		});
+	} catch {
 		return { globalError: "Failed to record outcome." };
 	}
 
 	revalidatePath(`/clients/${clientId}/quotes`);
+	revalidatePath(`/clients/${clientId}/activity`);
 	return { success: true };
 }
 
@@ -245,9 +274,19 @@ export async function updateQuoteStatusAction(
 	quoteId: string,
 	status: "draft" | "sent" | "accepted" | "declined" | "expired"
 ): Promise<void> {
-	await requireAuthenticatedUser();
+	const user = await requireAuthenticatedUser();
 	await updateQuoteStatus(quoteId, status);
+
+	if (status === "sent") {
+		await logActivity({
+			clientId,
+			userId: user.id,
+			eventType: "quote_sent",
+		});
+	}
+
 	revalidatePath(`/clients/${clientId}/quotes`);
+	revalidatePath(`/clients/${clientId}/activity`);
 }
 
 export async function regenerateQuoteAction(
@@ -256,5 +295,12 @@ export async function regenerateQuoteAction(
 ): Promise<void> {
 	const user = await requireAuthenticatedUser();
 	await regenerateQuote(quoteId, user.id);
+	await logActivity({
+		clientId,
+		userId: user.id,
+		eventType: "quote_generated",
+		metadata: { regenerated: true },
+	});
 	revalidatePath(`/clients/${clientId}/quotes`);
+	revalidatePath(`/clients/${clientId}/activity`);
 }

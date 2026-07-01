@@ -22,93 +22,144 @@ type ClientsTableProps = {
 
 export function ClientsTable({ clients }: ClientsTableProps) {
 	return (
-		<div className="overflow-hidden rounded-xl border border-[color:var(--border)]">
-			<table className="w-full min-w-[640px] border-collapse text-sm">
-				<thead>
-					<tr className="border-b border-[color:var(--border)] bg-[color:var(--surface)]">
-						<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-[color:var(--muted)]">
-							Name
-						</th>
-						<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-[color:var(--muted)]">
-							Contact
-						</th>
-						<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-[color:var(--muted)]">
-							Status
-						</th>
-						<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-[color:var(--muted)]">
-							Added
-						</th>
-						<th className="px-4 py-3" />
-					</tr>
-				</thead>
-				<tbody>
-					{clients.map((client, i) => (
-						<tr
-							key={client.id}
-							className={`border-b border-[color:var(--border)] transition-colors hover:bg-[color:var(--surface)] ${
-								i === clients.length - 1 ? "border-b-0" : ""
-							}`}
-						>
-							{/* Name */}
-							<td className="px-4 py-3 font-medium text-[color:var(--foreground)]">
-								<Link
-									href={`/clients/${client.id}`}
-									className="hover:underline"
-								>
-									{client.full_name}
-								</Link>
-							</td>
-
-							{/* Contact */}
-							<td className="px-4 py-3 text-[color:var(--muted)]">
-								{client.email ?? client.phone ?? (
-									<span className="italic text-[color:var(--muted)]/60">
-										—
-									</span>
-								)}
-							</td>
-
-							{/* Status badge */}
-							<td className="px-4 py-3">
-								<span
-									className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-										STATUS_STYLES[
-											client.status as ClientStatus
-										] ?? STATUS_STYLES.inactive
+		<>
+			{/* ── Desktop: table (md and up) ── */}
+			<div className="hidden overflow-hidden rounded-xl border border-[color:var(--border)] md:block">
+				<div className="overflow-x-auto">
+					<table className="w-full min-w-[640px] border-collapse text-sm">
+						<thead>
+							<tr className="border-b border-[color:var(--border)] bg-[color:var(--surface)]">
+								<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-[color:var(--muted)]">
+									Name
+								</th>
+								<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-[color:var(--muted)]">
+									Contact
+								</th>
+								<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-[color:var(--muted)]">
+									Status
+								</th>
+								<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-[color:var(--muted)]">
+									Added
+								</th>
+								<th className="px-4 py-3" />
+							</tr>
+						</thead>
+						<tbody>
+							{clients.map((client, i) => (
+								<tr
+									key={client.id}
+									className={`border-b border-[color:var(--border)] transition-colors hover:bg-[color:var(--surface)] ${
+										i === clients.length - 1 ? "border-b-0" : ""
 									}`}
 								>
-									{CLIENT_STATUS_LABELS[
-										client.status as ClientStatus
-									] ?? client.status}
-								</span>
-							</td>
+									{/* Name */}
+									<td className="px-4 py-3 font-medium text-[color:var(--foreground)]">
+										<Link
+											href={`/clients/${client.id}`}
+											className="hover:underline"
+										>
+											{client.full_name}
+										</Link>
+									</td>
 
-							{/* Added date */}
-							<td className="px-4 py-3 text-[color:var(--muted)]">
-								{formatDate(client.created_at)}
-							</td>
+									{/* Contact */}
+									<td className="px-4 py-3 text-[color:var(--muted)]">
+										{client.email ?? client.phone ?? (
+											<span className="italic text-[color:var(--muted)]/60">
+												—
+											</span>
+										)}
+									</td>
 
-							{/* Row actions */}
-							<td className="px-4 py-3">
-								<div className="flex items-center justify-end gap-2">
-									<Link
-										href={`/clients/${client.id}/intake`}
-										className="rounded-lg bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-									>
-										Start Intake
-									</Link>
-									<Link
-										href={`/clients/${client.id}`}
-										className="text-xs font-medium text-[color:var(--accent)] hover:underline"
-									>
-										View →
-									</Link>
-								</div>
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
+									{/* Status badge */}
+									<td className="px-4 py-3">
+										<span
+											className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+												STATUS_STYLES[
+													client.status as ClientStatus
+											] ?? STATUS_STYLES.inactive
+											}`}
+										>
+											{CLIENT_STATUS_LABELS[
+												client.status as ClientStatus
+										] ?? client.status}
+										</span>
+									</td>
+
+									{/* Added date */}
+									<td className="px-4 py-3 text-[color:var(--muted)]">
+										{formatDate(client.created_at)}
+									</td>
+
+									{/* Row actions */}
+									<td className="px-4 py-3">
+										<div className="flex items-center justify-end gap-2">
+											<Link
+												href={`/clients/${client.id}/intake`}
+												className="rounded-lg bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+											>
+												Start Intake
+											</Link>
+											<Link
+												href={`/clients/${client.id}`}
+												className="text-xs font-medium text-[color:var(--accent)] hover:underline"
+											>
+												View →
+											</Link>
+										</div>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			{/* ── Mobile: card list (below md) ── */}
+		<div className="space-y-3 md:hidden">
+			{clients.map((client) => (
+				<div
+					key={client.id}
+					className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4"
+				>
+					<div className="flex items-start justify-between gap-3">
+						<Link
+							href={`/clients/${client.id}`}
+							className="font-medium text-[color:var(--foreground)] hover:underline"
+						>
+							{client.full_name}
+						</Link>
+						<span
+							className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+								STATUS_STYLES[client.status as ClientStatus] ?? STATUS_STYLES.inactive
+							}`}
+						>
+							{CLIENT_STATUS_LABELS[client.status as ClientStatus] ?? client.status}
+						</span>
+					</div>
+					<p className="mt-1 text-sm text-[color:var(--muted)]">
+						{client.email ?? client.phone ?? "No contact info"}
+					</p>
+					<p className="mt-0.5 text-xs text-[color:var(--muted)]">
+						Added {formatDate(client.created_at)}
+					</p>
+					<div className="mt-3 flex items-center gap-2">
+						<Link
+							href={`/clients/${client.id}/intake`}
+							className="rounded-lg bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+						>
+							Start Intake
+						</Link>
+						<Link
+							href={`/clients/${client.id}`}
+							className="text-xs font-medium text-[color:var(--accent)] hover:underline"
+						>
+							View →
+						</Link>
+					</div>
+				</div>
+			))}
 		</div>
+		</>
 	);
 }

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getClientById } from "@/services/clients";
 import { getLatestIntakeByClientId } from "@/services/intake";
+import { getAssessmentsByClientId } from "@/services/assessments";
+import { getQuotesByClientId } from "@/services/quotes";
 import { notFound } from "next/navigation";
 
 type ClientOverviewPageProps = {
@@ -8,7 +10,7 @@ type ClientOverviewPageProps = {
 };
 
 function formatDate(iso: string | null) {
-	if (!iso) return "—";
+	if (!iso) return "--";
 	return new Date(iso).toLocaleDateString("en-US", {
 		month: "long",
 		day: "numeric",
@@ -29,8 +31,64 @@ function DetailRow({
 				{label}
 			</dt>
 			<dd className="text-sm text-[color:var(--foreground)]">
-				{value ?? "—"}
+				{value ?? "--"}
 			</dd>
+		</div>
+	);
+}
+
+// -- Workflow Step Component --
+
+type StepStatus = "complete" | "in_progress" | "not_started" | "locked";
+
+function WorkflowStep({
+	stepNumber,
+	title,
+	description,
+	status,
+	href,
+	actionLabel,
+}: {
+	stepNumber: number;
+	title: string;
+	description: string;
+	status: StepStatus;
+	href: string;
+	actionLabel: string;
+}) {
+	const statusConfig: Record<StepStatus, { icon: string; bg: string; ring: string; text: string }> = {
+		complete: { icon: "check", bg: "bg-emerald-100", ring: "border-emerald-300", text: "text-emerald-700" },
+		in_progress: { icon: "dot", bg: "bg-amber-100", ring: "border-amber-300", text: "text-amber-700" },
+		not_started: { icon: String(stepNumber), bg: "bg-[color:var(--border)]", ring: "border-[color:var(--border)]", text: "text-[color:var(--muted)]" },
+		locked: { icon: "-", bg: "bg-gray-100", ring: "border-gray-200", text: "text-gray-400" },
+	};
+
+	const cfg = statusConfig[status];
+
+	return (
+		<div className={`flex items-start gap-4 rounded-xl border ${cfg.ring} p-4`}>
+			<div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${cfg.bg} ${cfg.text} text-sm font-semibold`}>
+				{cfg.icon === "check" ? (
+					<svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+						<path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" />
+					</svg>
+				) : cfg.icon === "dot" ? (
+					<span className="h-2.5 w-2.5 rounded-full bg-current" />
+				) : (
+					cfg.icon
+				)}
+			</div>
+			<div className="min-w-0 flex-1">
+				<p className="text-sm font-semibold text-[color:var(--foreground)]">{title}</p>
+				<p className="mt-0.5 text-xs text-[color:var(--muted)]">{description}</p>
+				<Link
+					href={href}
+					className={`mt-2 inline-block text-xs font-medium ${status === "locked" ? "pointer-events-none opacity-40" : "hover:underline"}`}
+					style={{ color: status === "locked" ? "var(--muted)" : "var(--accent-strong)" }}
+				>
+					{actionLabel}
+				</Link>
+			</div>
 		</div>
 	);
 }
@@ -38,9 +96,11 @@ function DetailRow({
 export default async function ClientOverviewPage({
 	params,
 }: ClientOverviewPageProps) {
-	const [client, intake] = await Promise.all([
+	const [client, intake, assessments, quotes] = await Promise.all([
 		getClientById(params.id),
 		getLatestIntakeByClientId(params.id),
+		getAssessmentsByClientId(params.id),
+		getQuotesByClientId(params.id),
 	]);
 	if (!client) notFound();
 
@@ -53,16 +113,88 @@ export default async function ClientOverviewPage({
 		.filter(Boolean)
 		.join("\n");
 
-	// Determine intake status
 	const intakeStatus = !intake
 		? "not_started"
 		: intake.status === "submitted"
 			? "submitted"
 			: "draft";
-	const intakeVersion = intake?.version ?? 0;
+
+	const hasAssessment = assessments.length > 0;
+	const hasQuote = quotes.length > 0;
 
 	return (
 		<div className="space-y-6">
+			{/* Guided Workflow */}
+			<section>
+				<h2 className="mb-3 text-sm font-semibold text-[color:var(--foreground)]">
+					Workflow
+				</h2>
+				<div className="grid gap-3 sm:grid-cols-3">
+					<WorkflowStep
+						stepNumber={1}
+						title="Intake Assessment"
+						description={
+							intakeStatus === "submitted"
+								? `Completed v${intake?.version ?? 1}`
+								: intakeStatus === "draft"
+									? `In progress (v${intake?.version ?? 1})`
+									: "Start the 3-tier assessment"
+						}
+						status={
+							intakeStatus === "submitted"
+								? "complete"
+								: intakeStatus === "draft"
+									? "in_progress"
+									: "not_started"
+						}
+						href={`/clients/${client.id}/intake`}
+						actionLabel={
+							intakeStatus === "not_started"
+								? "Start Intake"
+								: intakeStatus === "draft"
+									? "Continue"
+									: "View / Revise"
+						}
+					/>
+					<WorkflowStep
+						stepNumber={2}
+						title="Risk Assessment"
+						description={
+							hasAssessment
+								? `${assessments.length} assessment${assessments.length !== 1 ? "s" : ""} generated`
+								: "Auto-generated from submitted intake"
+						}
+						status={
+							hasAssessment
+								? "complete"
+								: intakeStatus === "submitted"
+									? "not_started"
+									: "locked"
+						}
+						href={`/clients/${client.id}/assessments`}
+						actionLabel="View Assessments"
+					/>
+					<WorkflowStep
+						stepNumber={3}
+						title="Quote & Pricing"
+						description={
+							hasQuote
+								? `${quotes.length} quote${quotes.length !== 1 ? "s" : ""} created`
+								: "Generate pricing from assessment"
+						}
+						status={
+							hasQuote
+								? "complete"
+								: hasAssessment
+									? "not_started"
+									: "locked"
+						}
+						href={`/clients/${client.id}/quotes`}
+						actionLabel={hasQuote ? "View Quotes" : "Create Quote"}
+					/>
+				</div>
+			</section>
+
 			{/* Intake status banner */}
 			<section
 				className={`rounded-2xl border p-5 ${
@@ -97,8 +229,8 @@ export default async function ClientOverviewPage({
 						<div>
 							<p className="text-sm font-semibold text-[color:var(--foreground)]">
 								{intakeStatus === "not_started" && "No intake on file"}
-								{intakeStatus === "draft" && `Intake in progress (v${intakeVersion})`}
-								{intakeStatus === "submitted" && `Intake submitted (v${intakeVersion})`}
+								{intakeStatus === "draft" && `Intake in progress (v${intake?.version ?? 1})`}
+								{intakeStatus === "submitted" && `Intake submitted (v${intake?.version ?? 1})`}
 							</p>
 							<p className="text-xs text-[color:var(--muted)]">
 								{intakeStatus === "not_started" && "Begin the 3-tier assessment workflow"}
@@ -115,7 +247,7 @@ export default async function ClientOverviewPage({
 								: "bg-[color:var(--accent)] text-white hover:opacity-90"
 						}`}
 					>
-						{intakeStatus === "not_started" ? "Start Intake →" : intakeStatus === "draft" ? "Continue Intake →" : "View / Revise →"}
+						{intakeStatus === "not_started" ? "Start Intake" : intakeStatus === "draft" ? "Continue Intake" : "View / Revise"}
 					</Link>
 				</div>
 			</section>
@@ -130,10 +262,6 @@ export default async function ClientOverviewPage({
 						<DetailRow label="Full name" value={client.full_name} />
 						<DetailRow label="Email" value={client.email} />
 						<DetailRow label="Phone" value={client.phone} />
-						<DetailRow
-							label="Date of birth"
-							value={formatDate(client.date_of_birth)}
-						/>
 						<DetailRow label="Status" value={client.status} />
 						<DetailRow
 							label="Added"

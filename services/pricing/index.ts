@@ -6,6 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { RiskAssessmentRow } from "@/types/supabase";
+import type { HomeModificationsData, ModificationItem } from "@/types/modifications";
+import { MODIFICATION_CATALOG_MAP } from "@/types/modifications";
 
 // ── Risk → multiplier map ─────────────────────────────────────────────────────
 
@@ -115,10 +117,6 @@ export const ADJUSTMENT_REASONS: Record<string, string> = {
 export const PAYER_TYPES: Record<string, string> = {
 	self_pay: "Self-pay",
 	family_pay: "Family pays",
-	insurance: "Insurance",
-	medicare: "Medicare",
-	medicaid: "Medicaid",
-	mixed: "Mixed",
 	unknown: "Unknown",
 };
 
@@ -129,3 +127,57 @@ export const URGENCY_LEVELS: Record<string, string> = {
 	crisis: "Crisis",
 	unknown: "Unknown",
 };
+
+// -- Modification-based pricing (for ML training data) -------------------------
+
+/** Default markup percentage applied to modification costs */
+export const DEFAULT_MARKUP_PERCENT = 20;
+
+/** Default assessment/consultation fee */
+export const DEFAULT_ASSESSMENT_FEE = 500;
+
+export type ModificationLineItem = {
+	category: string;
+	modification_type: string;
+	description: string;
+	estimated_cost: number;
+	priority: string;
+};
+
+export type ModificationPricingResult = {
+	line_items: ModificationLineItem[];
+	total_modification_cost: number;
+	markup_percent: number;
+	markup_amount: number;
+	assessment_fee: number;
+	total_quote: number;
+};
+
+export function priceFromModifications(
+	mods: HomeModificationsData,
+	options?: { markupPercent?: number; assessmentFee?: number }
+): ModificationPricingResult {
+	const markupPercent = options?.markupPercent ?? DEFAULT_MARKUP_PERCENT;
+	const assessmentFee = options?.assessmentFee ?? DEFAULT_ASSESSMENT_FEE;
+
+	const lineItems: ModificationLineItem[] = mods.items.map((item) => ({
+		category: item.category,
+		modification_type: item.modification_type,
+		description: item.description ?? item.modification_type,
+		estimated_cost: item.estimated_cost,
+		priority: item.priority,
+	}));
+
+	const totalModCost = lineItems.reduce((sum, item) => sum + item.estimated_cost, 0);
+	const markupAmount = Math.round(totalModCost * (markupPercent / 100) * 100) / 100;
+	const totalQuote = totalModCost + markupAmount + assessmentFee;
+
+	return {
+		line_items: lineItems,
+		total_modification_cost: totalModCost,
+		markup_percent: markupPercent,
+		markup_amount: markupAmount,
+		assessment_fee: assessmentFee,
+		total_quote: totalQuote,
+	};
+}

@@ -128,14 +128,6 @@ export function AddClientForm({ onCancel }: AddClientFormProps) {
 						errors={state.errors?.phone}
 					/>
 				</div>
-				<Field
-					label="Date of birth"
-					name="date_of_birth"
-					type="text"
-					placeholder="MM/DD/YYYY"
-					hint="e.g. 06/15/1952"
-					errors={state.errors?.date_of_birth}
-				/>
 			</fieldset>
 
 			{/* Address */}

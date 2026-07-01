@@ -42,7 +42,8 @@ export type IntakeSectionKey =
 	| "tier2_cognitive"
 	| "tier2_frailty"
 	| "tier2_environmental"
-	| "physician_review";
+	| "physician_review"
+	| "home_modifications";
 
 export const INTAKE_SECTIONS = [
 	"clinical_context",
@@ -57,6 +58,7 @@ export const INTAKE_SECTIONS = [
 	"tier2_frailty",
 	"tier2_environmental",
 	"physician_review",
+	"home_modifications",
 ] as const satisfies ReadonlyArray<IntakeSectionKey>;
 
 export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
@@ -72,10 +74,11 @@ export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
 	tier2_frailty: "Frailty & Medical Pathway",
 	tier2_environmental: "Environmental Hazard Pathway",
 	physician_review: "Physician Review",
+	home_modifications: "Home Modifications",
 };
 
 // Tier classification for UI grouping
-export type AssessmentTier = "tier0" | "tier1" | "tier1_5" | "tier2" | "tier3";
+export type AssessmentTier = "tier0" | "tier1" | "tier1_5" | "tier2" | "tier3" | "tier3_modifications";
 
 export const INTAKE_SECTION_TIERS: Record<IntakeSectionKey, AssessmentTier> = {
 	clinical_context: "tier0",
@@ -90,6 +93,7 @@ export const INTAKE_SECTION_TIERS: Record<IntakeSectionKey, AssessmentTier> = {
 	tier2_frailty: "tier2",
 	tier2_environmental: "tier2",
 	physician_review: "tier3",
+	home_modifications: "tier3_modifications",
 };
 
 // Which Tier 2 sections are triggered by which Tier 1 results

@@ -86,11 +86,10 @@ export function SectionClinicalContext({ value, onChange }: Props) {
 					value={s.home_has_stairs}
 					onChange={(v) => u("home_has_stairs", v)}
 				/>
-				<TextField
-					label="Primary Caregiver"
-					value={s.primary_caregiver}
-					onChange={(v) => u("primary_caregiver", v)}
-					placeholder="Name & relationship"
+				<YesNoField
+					label="Has a primary caregiver"
+					value={s.has_caregiver}
+					onChange={(v) => u("has_caregiver", v)}
 				/>
 			</FieldGroup>
 
@@ -124,14 +123,8 @@ export function SectionClinicalContext({ value, onChange }: Props) {
 					onChange={(v) =>
 						u("assistive_devices", v ? v.split(",").map((d) => d.trim()) : [])
 					}
-					placeholder="cane, walker, wheelchair…"
+					placeholder="cane, walker, wheelchair"
 					hint="Comma-separated"
-				/>
-				<TextareaField
-					label="Major Diagnoses"
-					value={s.major_diagnoses}
-					onChange={(v) => u("major_diagnoses", v)}
-					placeholder="Primary diagnoses and relevant comorbidities"
 				/>
 				<YesNoUnknownField
 					label="Vision Impairment"
@@ -206,8 +199,8 @@ export function SectionClinicalContext({ value, onChange }: Props) {
 				/>
 			</FieldGroup>
 
-			{/* ── Payer & Urgency Context ── */}
-			<FieldGroup legend="Payer & Urgency Context (for Pricing)">
+			{/* Payer & Urgency Context */}
+			<FieldGroup legend="Payer & Urgency Context">
 				<SelectField
 					label="Payer Type"
 					value={s.payer_type}
@@ -215,10 +208,6 @@ export function SectionClinicalContext({ value, onChange }: Props) {
 					options={[
 						{ value: "self_pay", label: "Self-pay" },
 						{ value: "family_pay", label: "Family pays" },
-						{ value: "insurance", label: "Insurance" },
-						{ value: "medicare", label: "Medicare" },
-						{ value: "medicaid", label: "Medicaid" },
-						{ value: "mixed", label: "Mixed" },
 						{ value: "unknown", label: "Unknown" },
 					]}
 				/>
@@ -235,25 +224,13 @@ export function SectionClinicalContext({ value, onChange }: Props) {
 					]}
 					hint="How urgent is the need for services?"
 				/>
-				<TextField
-					label="Insurance Type"
-					value={s.insurance_type}
-					onChange={(v) => u("insurance_type", v)}
-					placeholder="e.g., Medicare Advantage, Long-term care policy"
-				/>
-				<TextField
-					label="Primary Payer Name"
-					value={s.primary_payer_name}
-					onChange={(v) => u("primary_payer_name", v)}
-					placeholder="Who is primarily responsible for payment?"
-				/>
 			</FieldGroup>
 
 			<TextareaField
 				label="Clinician Notes"
 				value={s.notes}
 				onChange={(v) => u("notes", v)}
-				placeholder="Additional clinical context observations…"
+				placeholder="Additional clinical context observations"
 			/>
 		</div>
 	);

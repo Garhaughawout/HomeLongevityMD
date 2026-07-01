@@ -16,6 +16,7 @@ import type {
 	Tier2EnvironmentalData,
 	PhysicianReviewData,
 } from "@/types/intake";
+import type { HomeModificationsData } from "@/types/modifications";
 import { saveSectionAction } from "@/features/intake/actions/save-section";
 import { WizardProgress, buildWizardSteps, type WizardStep } from "./wizard-progress";
 import { SectionClinicalContext } from "./section-clinical-context";
@@ -30,6 +31,7 @@ import { SectionTier2Cognitive } from "./section-tier2-cognitive";
 import { SectionTier2Frailty } from "./section-tier2-frailty";
 import { SectionTier2Environmental } from "./section-tier2-environmental";
 import { SectionPhysicianReview } from "./section-physician-review";
+import { SectionHomeModifications } from "./section-home-modifications";
 import { IntakeReview } from "./intake-review";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -125,6 +127,9 @@ export function IntakeWizard({ client, intake }: Props) {
 	const [physicianReview, setPhysicianReview] = useState<PhysicianReviewData>(
 		(intake?.physician_review as PhysicianReviewData) ?? {}
 	);
+	const [homeModifications, setHomeModifications] = useState<HomeModificationsData>(
+		(intake?.home_modifications as unknown as HomeModificationsData) ?? { items: [] }
+	);
 
 	const [isPending, startTransition] = useTransition();
 
@@ -199,6 +204,8 @@ export function IntakeWizard({ client, intake }: Props) {
 				return { key: step.key, data: tier2Environmental };
 			case "physician_review":
 				return { key: step.key, data: physicianReview };
+			case "home_modifications":
+				return { key: step.key, data: homeModifications };
 			default:
 				return null;
 		}
@@ -399,6 +406,12 @@ export function IntakeWizard({ client, intake }: Props) {
 							onChange={setPhysicianReview}
 						/>
 					)}
+					{steps[currentStep]?.key === "home_modifications" && (
+						<SectionHomeModifications
+							value={homeModifications}
+							onChange={setHomeModifications}
+						/>
+					)}
 					{isReviewStep && intakeId && (
 						<IntakeReview
 							client={client}
@@ -416,6 +429,7 @@ export function IntakeWizard({ client, intake }: Props) {
 								tier2_frailty: tier2Frailty,
 								tier2_environmental: tier2Environmental,
 								physician_review: physicianReview,
+								home_modifications: homeModifications,
 							} as never}
 							onSubmitSuccess={() => setSubmitted(true)}
 						/>

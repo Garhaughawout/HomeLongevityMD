@@ -68,139 +68,184 @@ export default async function QuotesPage() {
 					</p>
 				</div>
 			) : (
-				<div
-					className="rounded-2xl overflow-hidden"
-					style={{
-						background: "var(--surface)",
-						border: "1px solid var(--border)",
-					}}
-				>
-					<table className="w-full text-sm">
-						<thead>
-							<tr
-								style={{
-									borderBottom: "1px solid var(--border)",
-								}}
-							>
-								<th
-									className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Client
-								</th>
-								<th
-									className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Status
-								</th>
-								<th
-									className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Rate / mo
-								</th>
-								<th
-									className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Valid Until
-								</th>
-								<th
-									className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Created
-								</th>
-							</tr>
-						</thead>
-						<tbody
-							className="divide-y"
-							style={{ borderColor: "var(--border)" }}
-						>
-							{quotes.map((q) => {
-								const style =
-									STATUS_STYLES[q.status] ??
-									STATUS_STYLES.draft;
-								return (
+				<>
+					{/* ── Desktop: table (md and up) ── */}
+					<div
+						className="hidden rounded-2xl overflow-hidden md:block"
+						style={{
+							background: "var(--surface)",
+							border: "1px solid var(--border)",
+						}}
+					>
+						<div className="overflow-x-auto">
+							<table className="w-full min-w-[600px] text-sm">
+								<thead>
 									<tr
-										key={q.id}
-										className="hover:bg-black/[0.02]"
+										style={{
+											borderBottom: "1px solid var(--border)",
+										}}
 									>
-										<td className="px-5 py-3">
-											<Link
-												href={`/clients/${q.client_id}/quotes`}
-												className="font-medium hover:underline"
-												style={{
-													color: "var(--foreground)",
-												}}
-											>
-												{
-													(
-														q as QuoteRow & {
-															client_name?: string;
-														}
-													).client_name
-												}
-											</Link>
-										</td>
-										<td className="px-5 py-3">
-											<span
-												className="px-2 py-0.5 rounded-full text-xs font-medium"
-												style={{
-													backgroundColor: style.bg,
-													color: style.text,
-												}}
-											>
-												{q.status}
-											</span>
-										</td>
-										<td
-											className="px-5 py-3 text-right font-semibold tabular-nums"
-											style={{ color: "var(--ink)" }}
-										>
-											$
-											{Number(
-												q.plan_fee
-											).toLocaleString("en-US", {
-												minimumFractionDigits: 2,
-											})}
-										</td>
-										<td
-											className="px-5 py-3 text-right text-xs tabular-nums"
+										<th
+											className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
 											style={{ color: "var(--muted)" }}
 										>
-											{q.valid_until
-												? new Date(
-														q.valid_until
-													).toLocaleDateString(
-														"en-US",
-														{
-															month: "short",
-															day: "numeric",
-															year: "numeric",
-														}
-													)
-												: "—"}
-										</td>
-										<td
-											className="px-5 py-3 text-right text-xs tabular-nums"
+											Client
+										</th>
+										<th
+											className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
 											style={{ color: "var(--muted)" }}
 										>
-											{new Date(
-												q.created_at
-											).toLocaleDateString("en-US", {
-												month: "short",
-												day: "numeric",
-												year: "numeric",
-											})}
-										</td>
+											Status
+										</th>
+										<th
+											className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
+											style={{ color: "var(--muted)" }}
+										>
+											Rate / mo
+										</th>
+										<th
+											className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
+											style={{ color: "var(--muted)" }}
+										>
+											Valid Until
+										</th>
+										<th
+											className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
+											style={{ color: "var(--muted)" }}
+										>
+											Created
+										</th>
 									</tr>
-								);
-							})}
-						</tbody>
-					</table>
-				</div>
+								</thead>
+								<tbody
+									className="divide-y"
+									style={{ borderColor: "var(--border)" }}
+								>
+									{quotes.map((q) => {
+										const style =
+											STATUS_STYLES[q.status] ??
+											STATUS_STYLES.draft;
+										return (
+											<tr
+												key={q.id}
+												className="hover:bg-black/[0.02]"
+											>
+												<td className="px-5 py-3">
+													<Link
+														href={`/clients/${q.client_id}/quotes`}
+														className="font-medium hover:underline"
+														style={{
+															color: "var(--foreground)",
+														}}
+													>
+														{
+															(
+																q as QuoteRow & {
+																	client_name?: string;
+																}
+															).client_name
+														}
+													</Link>
+												</td>
+												<td className="px-5 py-3">
+													<span
+														className="px-2 py-0.5 rounded-full text-xs font-medium"
+														style={{
+															backgroundColor: style.bg,
+															color: style.text,
+														}}
+													>
+														{q.status}
+													</span>
+												</td>
+												<td
+													className="px-5 py-3 text-right font-semibold tabular-nums"
+													style={{ color: "var(--ink)" }}
+												>
+													$
+													{Number(
+														q.plan_fee
+													).toLocaleString("en-US", {
+														minimumFractionDigits: 2,
+													})}
+												</td>
+												<td
+													className="px-5 py-3 text-right text-xs tabular-nums"
+													style={{ color: "var(--muted)" }}
+												>
+													{q.valid_until
+														? new Date(
+																q.valid_until
+															).toLocaleDateString(
+																"en-US",
+																{
+																	month: "short",
+																	day: "numeric",
+																	year: "numeric",
+																}
+															)
+														: "—"}
+												</td>
+												<td
+													className="px-5 py-3 text-right text-xs tabular-nums"
+													style={{ color: "var(--muted)" }}
+												>
+													{new Date(
+														q.created_at
+													).toLocaleDateString("en-US", {
+														month: "short",
+														day: "numeric",
+														year: "numeric",
+													})}
+												</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					{/* ── Mobile: card list ── */}
+					<div className="space-y-3 md:hidden">
+						{quotes.map((q) => {
+							const style =
+								STATUS_STYLES[q.status] ?? STATUS_STYLES.draft;
+							const clientName = (q as QuoteRow & { client_name?: string }).client_name ?? "Unknown";
+							return (
+								<Link
+									key={q.id}
+									href={`/clients/${q.client_id}/quotes`}
+									className="block rounded-xl border p-4"
+									style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+								>
+									<div className="flex items-center justify-between gap-3">
+										<span className="font-medium text-[color:var(--foreground)]">
+											{clientName}
+										</span>
+										<span
+											className="px-2 py-0.5 rounded-full text-xs font-medium"
+											style={{ backgroundColor: style.bg, color: style.text }}
+										>
+											{q.status}
+										</span>
+									</div>
+									<div className="mt-2 flex items-center justify-between">
+										<span className="text-lg font-bold tabular-nums" style={{ color: "var(--ink)" }}>
+											${Number(q.plan_fee).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+											<span className="text-xs font-normal" style={{ color: "var(--muted)" }}>/mo</span>
+										</span>
+										<span className="text-xs text-[color:var(--muted)]">
+											{q.valid_until
+												? new Date(q.valid_until).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+												: "—"}
+										</span>
+									</div>
+								</Link>
+							);
+						})}
+					</div>
+				</>
 			)}
 		</div>
 	);

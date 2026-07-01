@@ -18,13 +18,13 @@ export default async function DashboardLayout({
 			{/* ── Desktop sidebar ────────────────────────────────────────────────── */}
 			<aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-[color:var(--ink)] lg:flex">
 				{/* Brand */}
-				<div className="flex h-16 shrink-0 flex-col items-center justify-center gap-1 border-b border-white/10 px-5">
+				<div className="flex h-20 shrink-0 flex-col items-center justify-center gap-1 border-b border-white/10 px-5">
 					<Image
 						src="/logo.png"
 						alt="HomeLongevityMD"
-						width={140}
-						height={40}
-						className="h-8 w-auto rounded bg-white/95 px-1.5 py-0.5"
+						width={200}
+						height={56}
+						className="h-14 w-auto rounded bg-white/95 px-2 py-1"
 						priority
 					/>
 					<Link
@@ -58,9 +58,9 @@ export default async function DashboardLayout({
 							<Image
 								src="/logo.png"
 								alt="HomeLongevityMD"
-								width={100}
-								height={32}
-								className="h-7 w-auto rounded bg-white/95 px-1 py-0.5"
+								width={160}
+								height={48}
+								className="h-11 w-auto rounded bg-white/95 px-1.5 py-0.5"
 							/>
 							<Link
 								href="/dashboard"
@@ -77,7 +77,7 @@ export default async function DashboardLayout({
 				</header>
 
 				{/* ── Page content ─────────────────────────────────────────────────── */}
-				<main className="flex-1 px-6 py-8 lg:px-8 lg:py-10">
+				<main className="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
 					{children}
 				</main>
 			</div>

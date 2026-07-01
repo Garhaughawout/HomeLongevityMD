@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireAuthenticatedUser } from "@/services/auth/session";
 import {
 	submitIntake,
@@ -9,13 +10,14 @@ import {
 } from "@/services/intake";
 import { scoreIntake } from "@/services/scoring";
 import { persistAssessment } from "@/services/assessments";
+import { logActivity } from "@/services/activity";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// -- Types --
 
 export type SubmitIntakeResult = { success: true } | { error: string };
 export type StartRevisionResult = { intakeId: string } | { error: string };
 
-// ── Submit ────────────────────────────────────────────────────────────────────
+// -- Submit --
 
 export async function submitIntakeAction(
 	intakeId: string
@@ -39,6 +41,26 @@ export async function submitIntakeAction(
 			user.id
 		);
 
+		// 4. Log activity
+		await logActivity({
+			clientId: submitted.client_id,
+			userId: user.id,
+			eventType: "intake_submitted",
+			metadata: { intake_version: submitted.version },
+		});
+
+		await logActivity({
+			clientId: submitted.client_id,
+			userId: user.id,
+			eventType: "assessment_persisted",
+			metadata: {
+				score: scoring.aggregate_score,
+				risk_category: scoring.risk_category,
+			},
+		});
+
+		revalidatePath(`/clients/${submitted.client_id}/activity`);
+		revalidatePath(`/clients/${submitted.client_id}/assessments`);
 		return { success: true };
 	} catch (err) {
 		const message =
@@ -49,12 +71,8 @@ export async function submitIntakeAction(
 	}
 }
 
-// ── Start revision ────────────────────────────────────────────────────────────
+// -- Start revision --
 
-/**
- * Creates a new draft intake version for a client whose latest intake
- * is already submitted.  The previous submitted record is preserved.
- */
 export async function startRevisionAction(
 	clientId: string
 ): Promise<StartRevisionResult> {

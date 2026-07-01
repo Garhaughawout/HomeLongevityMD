@@ -1,3 +1,5 @@
+import type { HomeModificationsData } from "@/types/modifications";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Intake section data shapes
 // These interfaces type the JSONB columns on the client_intake table.
@@ -54,7 +56,7 @@ export interface ClinicalContextData {
 		| "other";
 	home_type_other?: string;
 	home_has_stairs?: boolean;
-	primary_caregiver?: string;
+	has_caregiver?: boolean;
 
 	// ── Medical Snapshot ──
 	/** Number of hospitalisations in the past 12 months */
@@ -65,7 +67,6 @@ export interface ClinicalContextData {
 	falls_past_12mo?: number;
 	fall_resulted_in_injury?: boolean;
 	assistive_devices?: string[];
-	major_diagnoses?: string;
 	vision_impairment?: YesNoUnknown;
 	hearing_impairment?: YesNoUnknown;
 	medication_count?: number;
@@ -89,10 +90,6 @@ export interface ClinicalContextData {
 	payer_type?:
 		| "self_pay"
 		| "family_pay"
-		| "insurance"
-		| "medicare"
-		| "medicaid"
-		| "mixed"
 		| "unknown";
 	urgency_level?:
 		| "planning_ahead"
@@ -100,8 +97,6 @@ export interface ClinicalContextData {
 		| "near_crisis"
 		| "crisis"
 		| "unknown";
-	insurance_type?: string;
-	primary_payer_name?: string;
 
 	notes?: string;
 }
@@ -560,6 +555,8 @@ export interface ClientIntakeSections {
 	/** Conditional — triggered when HOME FAST hazard count exceeds threshold */
 	tier2_environmental: Tier2EnvironmentalData | null;
 	physician_review: PhysicianReviewData | null;
+	/** Post-assessment modification recommendations */
+	home_modifications: HomeModificationsData | null;
 }
 
 /** Union of all intake section data types */
@@ -575,4 +572,5 @@ export type IntakeSectionData =
 	| Tier2CognitiveData
 	| Tier2FrailtyData
 	| Tier2EnvironmentalData
-	| PhysicianReviewData;
+	| PhysicianReviewData
+	| HomeModificationsData;

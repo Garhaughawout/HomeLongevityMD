@@ -6,23 +6,17 @@ import {
 	createIntake,
 	upsertSection,
 } from "@/services/intake";
+import { logActivity } from "@/services/activity";
 import type { IntakeSectionKey } from "@/types/domain";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// -- Types --
 
 export type SaveSectionResult =
 	| { intakeId: string; updatedAt: string }
 	| { error: string };
 
-// ── Action ────────────────────────────────────────────────────────────────────
+// -- Action --
 
-/**
- * Autosave a single intake section.
- *
- * If no intakeId is provided, looks for an existing draft for the client;
- * creates a new draft if none exists. Returns the intakeId so the wizard
- * can track it across subsequent saves.
- */
 export async function saveSectionAction(
 	clientId: string,
 	sectionKey: IntakeSectionKey,
@@ -51,6 +45,14 @@ export async function saveSectionAction(
 		}
 
 		const updated = await upsertSection(resolvedIntakeId, sectionKey, data);
+
+		await logActivity({
+			clientId,
+			userId: user.id,
+			eventType: "intake_saved",
+			metadata: { section: sectionKey },
+		});
+
 		return { intakeId: updated.id, updatedAt: updated.updated_at };
 	} catch (err) {
 		const message =

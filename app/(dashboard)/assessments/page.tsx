@@ -83,113 +83,156 @@ export default async function AssessmentsPage() {
 					</p>
 				</div>
 			) : (
-				<div
-					className="rounded-2xl overflow-hidden"
-					style={{
-						background: "var(--surface)",
-						border: "1px solid var(--border)",
-					}}
-				>
-					<table className="w-full text-sm">
-						<thead>
-							<tr
-								style={{
-									borderBottom: "1px solid var(--border)",
-								}}
-							>
-								<th
-									className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Client
-								</th>
-								<th
-									className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Risk
-								</th>
-								<th
-									className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Score
-								</th>
-								<th
-									className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
-									style={{ color: "var(--muted)" }}
-								>
-									Date
-								</th>
-							</tr>
-						</thead>
-						<tbody
-							className="divide-y"
-							style={{ borderColor: "var(--border)" }}
-						>
-							{assessments.map((a) => {
-								const style =
-									CATEGORY_STYLES[a.risk_category] ??
-									CATEGORY_STYLES.moderate;
-								return (
+				<>
+					{/* ── Desktop: table (md and up) ── */}
+					<div
+						className="hidden rounded-2xl overflow-hidden md:block"
+						style={{
+							background: "var(--surface)",
+							border: "1px solid var(--border)",
+						}}
+					>
+						<div className="overflow-x-auto">
+							<table className="w-full min-w-[600px] text-sm">
+								<thead>
 									<tr
-										key={a.id}
-										className="hover:bg-black/[0.02]"
+										style={{
+											borderBottom: "1px solid var(--border)",
+										}}
 									>
-										<td className="px-5 py-3">
-											<Link
-												href={`/clients/${a.client_id}/assessments`}
-												className="font-medium hover:underline"
-												style={{
-													color: "var(--foreground)",
-												}}
-											>
-												{a.client_name}
-											</Link>
-										</td>
-										<td className="px-5 py-3">
-											<span
-												className="px-2 py-0.5 rounded-full text-xs font-medium"
-												style={{
-													backgroundColor: style.bg,
-													color: style.text,
-												}}
-											>
-												{style.label}
-											</span>
-										</td>
-										<td
-											className="px-5 py-3 text-right tabular-nums font-semibold"
-											style={{ color: "var(--ink)" }}
-										>
-											{a.aggregate_score}
-											<span
-												className="text-xs font-normal"
-												style={{
-													color: "var(--muted)",
-												}}
-											>
-												/100
-											</span>
-										</td>
-										<td
-											className="px-5 py-3 text-right text-xs tabular-nums"
+										<th
+											className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
 											style={{ color: "var(--muted)" }}
 										>
-											{new Date(
-												a.created_at
-											).toLocaleDateString("en-US", {
-												month: "short",
-												day: "numeric",
-												year: "numeric",
-											})}
-										</td>
+											Client
+										</th>
+										<th
+											className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+											style={{ color: "var(--muted)" }}
+										>
+											Risk
+										</th>
+										<th
+											className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
+											style={{ color: "var(--muted)" }}
+										>
+											Score
+										</th>
+										<th
+											className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider"
+											style={{ color: "var(--muted)" }}
+										>
+											Date
+										</th>
 									</tr>
-								);
-							})}
-						</tbody>
-					</table>
-				</div>
+								</thead>
+								<tbody
+									className="divide-y"
+									style={{ borderColor: "var(--border)" }}
+								>
+									{assessments.map((a) => {
+										const style =
+											CATEGORY_STYLES[a.risk_category] ??
+											CATEGORY_STYLES.moderate;
+										return (
+											<tr
+												key={a.id}
+												className="hover:bg-black/[0.02]"
+											>
+												<td className="px-5 py-3">
+													<Link
+														href={`/clients/${a.client_id}/assessments`}
+														className="font-medium hover:underline"
+														style={{
+															color: "var(--foreground)",
+														}}
+													>
+														{a.client_name}
+													</Link>
+												</td>
+												<td className="px-5 py-3">
+													<span
+														className="px-2 py-0.5 rounded-full text-xs font-medium"
+														style={{
+															backgroundColor: style.bg,
+															color: style.text,
+														}}
+													>
+														{style.label}
+													</span>
+												</td>
+												<td
+													className="px-5 py-3 text-right tabular-nums font-semibold"
+													style={{ color: "var(--ink)" }}
+												>
+													{a.aggregate_score}
+													<span
+														className="text-xs font-normal"
+														style={{
+															color: "var(--muted)",
+														}}
+													>
+														/100
+													</span>
+												</td>
+												<td
+													className="px-5 py-3 text-right text-xs tabular-nums"
+													style={{ color: "var(--muted)" }}
+												>
+													{new Date(
+														a.created_at
+													).toLocaleDateString("en-US", {
+														month: "short",
+														day: "numeric",
+														year: "numeric",
+													})}
+												</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					{/* ── Mobile: card list ── */}
+					<div className="space-y-3 md:hidden">
+						{assessments.map((a) => {
+							const style =
+								CATEGORY_STYLES[a.risk_category] ??
+								CATEGORY_STYLES.moderate;
+							return (
+								<Link
+									key={a.id}
+									href={`/clients/${a.client_id}/assessments`}
+									className="block rounded-xl border p-4"
+									style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+								>
+									<div className="flex items-center justify-between gap-3">
+										<span className="font-medium text-[color:var(--foreground)]">
+											{a.client_name}
+										</span>
+										<span
+											className="px-2 py-0.5 rounded-full text-xs font-medium"
+											style={{ backgroundColor: style.bg, color: style.text }}
+										>
+											{style.label}
+										</span>
+									</div>
+									<div className="mt-2 flex items-center justify-between">
+										<span className="text-lg font-bold tabular-nums" style={{ color: "var(--ink)" }}>
+											{a.aggregate_score}
+											<span className="text-xs font-normal" style={{ color: "var(--muted)" }}>/100</span>
+										</span>
+										<span className="text-xs text-[color:var(--muted)]">
+											{new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+										</span>
+									</div>
+								</Link>
+							);
+						})}
+					</div>
+				</>
 			)}
 		</div>
 	);
