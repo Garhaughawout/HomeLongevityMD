@@ -50,16 +50,11 @@ export function SectionAdlIadl({ value, onChange }: Props) {
 	}, [katzScore, lawtonScore]);
 
 	return (
-		<div className="space-y-8">
-			<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm">
-				<p className="text-[color:var(--muted)]">
-					<span className="font-medium text-[color:var(--foreground)]">
-						ADL/IADL Assessment
-					</span>{" "}
-					— Katz ADL (6 items, 0–6) + Lawton IADL (8 items, 0–8).
-					Higher = more independent.
-				</p>
-			</div>
+		<div className="space-y-5">
+			<InfoBanner variant="info">
+				<strong>ADL/IADL Assessment</strong> — Katz ADL (6 items, 0–6) +
+				Lawton IADL (8 items, 0–8). Higher = more independent.
+			</InfoBanner>
 
 			{/* Katz ADL */}
 			<FieldGroup legend="Katz ADL — Basic Activities of Daily Living">

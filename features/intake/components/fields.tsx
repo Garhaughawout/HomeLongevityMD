@@ -2,59 +2,224 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared primitive field components for the intake wizard.
+// Clinical-worksheet style: each question is one row — full-sentence label in
+// foreground text on the left, a segmented answer control on the right, rows
+// separated by hairline dividers inside a section card.
 // All components are controlled (value + onChange props).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 import type { YesNoNa, YesNoUnknown, AssistanceLevel } from "@/types/intake";
 
-// ── Layout helpers ────────────────────────────────────────────────────────────
+// ── Section card with answered counter ────────────────────────────────────────
+
+function countAnswers(children: ReactNode): { answered: number; total: number } {
+	let answered = 0;
+	let total = 0;
+	Children.forEach(children, (child) => {
+		if (!isValidElement(child)) return;
+		const p = child.props as Record<string, unknown>;
+		if (!("value" in p) && !("values" in p)) return;
+		total += 1;
+		const v = "values" in p ? p.values : p.value;
+		const isAnswered = Array.isArray(v)
+			? v.length > 0
+			: v !== undefined && v !== null && v !== "";
+		if (isAnswered) answered += 1;
+	});
+	return { answered, total };
+}
 
 type FieldGroupProps = {
 	legend: string;
+	description?: ReactNode;
+	/** Overrides the auto "N of M" counter chip (e.g. a points subtotal) */
+	badge?: string;
 	children: ReactNode;
 };
 
-export function FieldGroup({ legend, children }: FieldGroupProps) {
+export function FieldGroup({ legend, description, badge, children }: FieldGroupProps) {
+	const { answered, total } = countAnswers(children);
+	const chip = badge ?? (total >= 2 ? `${answered} of ${total}` : null);
+	const complete = badge === undefined && total >= 2 && answered === total;
+
 	return (
-		<fieldset className="space-y-4">
-			<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-				{legend}
-			</legend>
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				{children}
+		<section className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-4">
+			<div className="flex items-start justify-between gap-4 border-b border-[color:var(--border)] pb-3">
+				<div>
+					<h3 className="text-base font-semibold text-[color:var(--foreground)]">
+						{legend}
+					</h3>
+					{description && (
+						<p className="mt-1 text-sm leading-relaxed text-[color:var(--muted)]">
+							{description}
+						</p>
+					)}
+				</div>
+				{chip && (
+					<span
+						className={[
+							"shrink-0 rounded-full px-2.5 py-1 text-sm font-medium tabular-nums",
+							complete
+								? "bg-emerald-100 text-emerald-800"
+								: "border border-[color:var(--border)] bg-[color:var(--surface-strong)] text-[color:var(--foreground)]",
+						].join(" ")}
+					>
+						{chip}
+					</span>
+				)}
 			</div>
-		</fieldset>
+			<div className="divide-y divide-[color:var(--border)]">{children}</div>
+		</section>
 	);
 }
 
-type FieldWrapProps = {
+// ── Worksheet row ─────────────────────────────────────────────────────────────
+
+type FieldRowProps = {
 	label: string;
 	children: ReactNode;
 	hint?: string;
-	fullWidth?: boolean;
+	/** Stack the control below the label (textareas, sliders, chip grids) */
+	stacked?: boolean;
 };
 
-export function FieldWrap({
-	label,
-	children,
-	hint,
-	fullWidth,
-}: FieldWrapProps) {
+export function FieldRow({ label, children, hint, stacked }: FieldRowProps) {
+	if (stacked) {
+		return (
+			<div className="py-3.5">
+				<p className="text-[15px] leading-snug text-[color:var(--foreground)]">
+					{label}
+				</p>
+				{hint && (
+					<p className="mt-0.5 text-xs text-[color:var(--muted)]">{hint}</p>
+				)}
+				<div className="mt-2">{children}</div>
+			</div>
+		);
+	}
 	return (
-		<div className={fullWidth ? "sm:col-span-2" : undefined}>
-			<label className="mb-1.5 block text-sm font-medium text-[color:var(--foreground)]">
-				{label}
-			</label>
-			{children}
-			{hint && (
-				<p className="mt-1 text-xs text-[color:var(--muted)]">{hint}</p>
-			)}
+		<div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3.5">
+			<div className="min-w-[12rem] flex-1">
+				<p className="text-[15px] leading-snug text-[color:var(--foreground)]">
+					{label}
+				</p>
+				{hint && (
+					<p className="mt-0.5 text-xs text-[color:var(--muted)]">{hint}</p>
+				)}
+			</div>
+			<div className="shrink-0">{children}</div>
 		</div>
 	);
 }
 
-// ── Yes / No / N/A radio (matches paper form) ─────────────────────────────────
+/** Kept for backward compatibility — renders a stacked worksheet row. */
+export function FieldWrap({
+	label,
+	children,
+	hint,
+}: {
+	label: string;
+	children: ReactNode;
+	hint?: string;
+	fullWidth?: boolean;
+}) {
+	return (
+		<FieldRow label={label} hint={hint} stacked>
+			{children}
+		</FieldRow>
+	);
+}
+
+// ── Segmented answer control ──────────────────────────────────────────────────
+
+type SegmentedOption<T> = { value: T; label: string };
+
+export function SegmentedControl<T extends string | number | boolean>({
+	options,
+	value,
+	onChange,
+	ariaLabel,
+}: {
+	options: Array<SegmentedOption<T>>;
+	value: T | undefined;
+	onChange: (v: T) => void;
+	ariaLabel?: string;
+}) {
+	return (
+		<div
+			role="group"
+			aria-label={ariaLabel}
+			className="inline-flex overflow-hidden rounded-lg border border-[color:var(--border-strong)] [&>button+button]:border-l [&>button+button]:border-[color:var(--border-strong)]"
+		>
+			{options.map((opt) => {
+				const active = value === opt.value;
+				return (
+					<button
+						key={String(opt.value)}
+						type="button"
+						aria-pressed={active}
+						onClick={() => onChange(opt.value)}
+						className={[
+							"min-h-10 min-w-[2.75rem] px-3.5 py-1.5 text-sm font-medium transition-colors",
+							active
+								? "bg-[color:var(--accent)] text-white"
+								: "bg-[color:var(--surface-strong)] text-[color:var(--muted-strong)] hover:bg-[color:var(--surface)]",
+						].join(" ")}
+					>
+						{opt.label}
+					</button>
+				);
+			})}
+		</div>
+	);
+}
+
+// ── Single-select chips (for option sets too long for a segmented control) ───
+
+type ChipSelectFieldProps<T extends string> = {
+	label: string;
+	value: T | undefined;
+	onChange: (v: T) => void;
+	options: Array<{ value: T; label: string }>;
+	hint?: string;
+};
+
+export function ChipSelectField<T extends string>({
+	label,
+	value,
+	onChange,
+	options,
+	hint,
+}: ChipSelectFieldProps<T>) {
+	return (
+		<FieldRow label={label} hint={hint} stacked>
+			<div className="flex flex-wrap gap-2" role="group" aria-label={label}>
+				{options.map((opt) => {
+					const active = value === opt.value;
+					return (
+						<button
+							key={opt.value}
+							type="button"
+							aria-pressed={active}
+							onClick={() => onChange(opt.value)}
+							className={[
+								"min-h-10 rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors",
+								active
+									? "border-[color:var(--accent)] bg-[color:var(--accent)] text-white"
+									: "border-[color:var(--border-strong)] bg-[color:var(--surface-strong)] text-[color:var(--muted-strong)] hover:bg-[color:var(--surface)]",
+							].join(" ")}
+						>
+							{opt.label}
+						</button>
+					);
+				})}
+			</div>
+		</FieldRow>
+	);
+}
+
+// ── Yes / No / N/A ────────────────────────────────────────────────────────────
 
 type YesNoNaFieldProps = {
 	label: string;
@@ -65,30 +230,22 @@ type YesNoNaFieldProps = {
 
 export function YesNoNaField({ label, value, onChange, hint }: YesNoNaFieldProps) {
 	return (
-		<FieldWrap label={label} hint={hint}>
-			<div className="flex gap-4">
-				{(["yes", "no", "na"] as const).map((opt) => (
-					<label
-						key={opt}
-						className="flex cursor-pointer items-center gap-1.5 text-sm"
-					>
-						<input
-							type="radio"
-							checked={value === opt}
-							onChange={() => onChange(opt)}
-							className="accent-[color:var(--accent)]"
-						/>
-						{opt === "na"
-							? "N/A"
-							: opt.charAt(0).toUpperCase() + opt.slice(1)}
-					</label>
-				))}
-			</div>
-		</FieldWrap>
+		<FieldRow label={label} hint={hint}>
+			<SegmentedControl
+				ariaLabel={label}
+				value={value}
+				onChange={onChange}
+				options={[
+					{ value: "yes", label: "Yes" },
+					{ value: "no", label: "No" },
+					{ value: "na", label: "N/A" },
+				]}
+			/>
+		</FieldRow>
 	);
 }
 
-// ── Yes / No / Unknown radio ──────────────────────────────────────────────────
+// ── Yes / No / Unknown ────────────────────────────────────────────────────────
 
 type YesNoUnknownFieldProps = {
 	label: string;
@@ -104,30 +261,22 @@ export function YesNoUnknownField({
 	hint,
 }: YesNoUnknownFieldProps) {
 	return (
-		<FieldWrap label={label} hint={hint}>
-			<div className="flex gap-4">
-				{(["yes", "no", "unknown"] as const).map((opt) => (
-					<label
-						key={opt}
-						className="flex cursor-pointer items-center gap-1.5 text-sm capitalize"
-					>
-						<input
-							type="radio"
-							checked={value === opt}
-							onChange={() => onChange(opt)}
-							className="accent-[color:var(--accent)]"
-						/>
-						{opt === "unknown"
-							? "Unknown"
-							: opt.charAt(0).toUpperCase() + opt.slice(1)}
-					</label>
-				))}
-			</div>
-		</FieldWrap>
+		<FieldRow label={label} hint={hint}>
+			<SegmentedControl
+				ariaLabel={label}
+				value={value}
+				onChange={onChange}
+				options={[
+					{ value: "yes", label: "Yes" },
+					{ value: "no", label: "No" },
+					{ value: "unknown", label: "Unknown" },
+				]}
+			/>
+		</FieldRow>
 	);
 }
 
-// ── Yes / No radio (no Unknown option) ───────────────────────────────────────
+// ── Yes / No ──────────────────────────────────────────────────────────────────
 
 type YesNoFieldProps = {
 	label: string;
@@ -138,28 +287,21 @@ type YesNoFieldProps = {
 
 export function YesNoField({ label, value, onChange, hint }: YesNoFieldProps) {
 	return (
-		<FieldWrap label={label} hint={hint}>
-			<div className="flex gap-4">
-				{([true, false] as const).map((opt) => (
-					<label
-						key={String(opt)}
-						className="flex cursor-pointer items-center gap-1.5 text-sm"
-					>
-						<input
-							type="radio"
-							checked={value === opt}
-							onChange={() => onChange(opt)}
-							className="accent-[color:var(--accent)]"
-						/>
-						{opt ? "Yes" : "No"}
-					</label>
-				))}
-			</div>
-		</FieldWrap>
+		<FieldRow label={label} hint={hint}>
+			<SegmentedControl
+				ariaLabel={label}
+				value={value}
+				onChange={onChange}
+				options={[
+					{ value: true, label: "Yes" },
+					{ value: false, label: "No" },
+				]}
+			/>
+		</FieldRow>
 	);
 }
 
-// ── Independence / Needs Help / Dependent radio ────────────────────────────────
+// ── Independent / Needs help / Dependent ──────────────────────────────────────
 
 type IndependenceLevelFieldProps = {
 	label: string;
@@ -175,39 +317,29 @@ export function IndependenceLevelField({
 	hint,
 }: IndependenceLevelFieldProps) {
 	return (
-		<FieldWrap label={label} hint={hint}>
-			<div className="flex gap-4">
-				{(
-					["independent", "needs_help", "dependent"] as const
-				).map((opt) => (
-					<label
-						key={opt}
-						className="flex cursor-pointer items-center gap-1.5 text-sm"
-					>
-						<input
-							type="radio"
-							checked={value === opt}
-							onChange={() => onChange(opt)}
-							className="accent-[color:var(--accent)]"
-						/>
-						{opt === "needs_help"
-							? "Needs Help"
-							: opt.charAt(0).toUpperCase() + opt.slice(1)}
-					</label>
-				))}
-			</div>
-		</FieldWrap>
+		<FieldRow label={label} hint={hint}>
+			<SegmentedControl
+				ariaLabel={label}
+				value={value}
+				onChange={onChange}
+				options={[
+					{ value: "independent", label: "Independent" },
+					{ value: "needs_help", label: "Needs help" },
+					{ value: "dependent", label: "Dependent" },
+				]}
+			/>
+		</FieldRow>
 	);
 }
 
-// ── Assistance Level (1–5) ────────────────────────────────────────────────────
+// ── Assistance level (1–5) ────────────────────────────────────────────────────
 
 const ASSISTANCE_LABELS: Record<AssistanceLevel, string> = {
-	1: "1 – Independent",
-	2: "2 – Setup only",
-	3: "3 – Minimal assist",
-	4: "4 – Moderate assist",
-	5: "5 – Total assist",
+	1: "Independent",
+	2: "Setup only",
+	3: "Minimal assist",
+	4: "Moderate assist",
+	5: "Total assist",
 };
 
 type AssistanceLevelFieldProps = {
@@ -222,22 +354,24 @@ export function AssistanceLevelField({
 	onChange,
 }: AssistanceLevelFieldProps) {
 	return (
-		<FieldWrap label={label}>
-			<select
-				value={value ?? ""}
-				onChange={(e) =>
-					onChange(Number(e.target.value) as AssistanceLevel)
-				}
-				className="w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]"
-			>
-				<option value="">— Select —</option>
-				{([1, 2, 3, 4, 5] as AssistanceLevel[]).map((lvl) => (
-					<option key={lvl} value={lvl}>
-						{ASSISTANCE_LABELS[lvl]}
-					</option>
-				))}
-			</select>
-		</FieldWrap>
+		<FieldRow
+			label={label}
+			hint={
+				value !== undefined
+					? `${value} — ${ASSISTANCE_LABELS[value]}`
+					: "1 = independent · 5 = total assist"
+			}
+		>
+			<SegmentedControl
+				ariaLabel={label}
+				value={value}
+				onChange={onChange}
+				options={([1, 2, 3, 4, 5] as AssistanceLevel[]).map((lvl) => ({
+					value: lvl,
+					label: String(lvl),
+				}))}
+			/>
+		</FieldRow>
 	);
 }
 
@@ -265,22 +399,20 @@ export function NumberField({
 	unit,
 }: NumberFieldProps) {
 	return (
-		<FieldWrap label={label} hint={hint}>
+		<FieldRow label={label} hint={hint}>
 			<div className="flex items-center gap-2">
 				<input
 					type="number"
 					value={value ?? ""}
 					onChange={(e) => {
 						const v =
-							e.target.value === ""
-								? undefined
-								: Number(e.target.value);
+							e.target.value === "" ? undefined : Number(e.target.value);
 						onChange(v);
 					}}
 					min={min}
 					max={max}
 					step={step ?? 1}
-					className="w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]"
+					className="w-28 rounded-lg border border-[color:var(--border-strong)] bg-[color:var(--surface-strong)] px-3 py-2 text-right text-[15px] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]"
 				/>
 				{unit && (
 					<span className="shrink-0 text-sm text-[color:var(--muted)]">
@@ -288,7 +420,7 @@ export function NumberField({
 					</span>
 				)}
 			</div>
-		</FieldWrap>
+		</FieldRow>
 	);
 }
 
@@ -310,15 +442,15 @@ export function TextField({
 	hint,
 }: TextFieldProps) {
 	return (
-		<FieldWrap label={label} hint={hint}>
+		<FieldRow label={label} hint={hint}>
 			<input
 				type="text"
 				value={value ?? ""}
 				onChange={(e) => onChange(e.target.value)}
 				placeholder={placeholder}
-				className="w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--foreground)] placeholder:text-[color:var(--muted)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]"
+				className="w-full rounded-lg border border-[color:var(--border-strong)] bg-[color:var(--surface-strong)] px-3 py-2 text-[15px] text-[color:var(--foreground)] placeholder:text-[color:var(--muted)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] sm:w-72"
 			/>
-		</FieldWrap>
+		</FieldRow>
 	);
 }
 
@@ -340,15 +472,15 @@ export function TextareaField({
 	rows = 3,
 }: TextareaFieldProps) {
 	return (
-		<FieldWrap label={label} fullWidth>
+		<FieldRow label={label} stacked>
 			<textarea
 				value={value ?? ""}
 				onChange={(e) => onChange(e.target.value)}
 				placeholder={placeholder}
 				rows={rows}
-				className="w-full resize-none rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--foreground)] placeholder:text-[color:var(--muted)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]"
+				className="w-full resize-none rounded-lg border border-[color:var(--border-strong)] bg-[color:var(--surface-strong)] px-3 py-2 text-[15px] text-[color:var(--foreground)] placeholder:text-[color:var(--muted)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]"
 			/>
-		</FieldWrap>
+		</FieldRow>
 	);
 }
 
@@ -372,11 +504,11 @@ export function SelectField<T extends string>({
 	hint,
 }: SelectFieldProps<T>) {
 	return (
-		<FieldWrap label={label} hint={hint}>
+		<FieldRow label={label} hint={hint}>
 			<select
 				value={value ?? ""}
 				onChange={(e) => onChange(e.target.value as T)}
-				className="w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]"
+				className="w-full rounded-lg border border-[color:var(--border-strong)] bg-[color:var(--surface-strong)] px-3 py-2 text-[15px] text-[color:var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] sm:w-72"
 			>
 				<option value="">{placeholder ?? "— Select —"}</option>
 				{options.map((o) => (
@@ -385,7 +517,7 @@ export function SelectField<T extends string>({
 					</option>
 				))}
 			</select>
-		</FieldWrap>
+		</FieldRow>
 	);
 }
 
@@ -400,7 +532,7 @@ type NrsSliderProps = {
 
 export function NrsSlider({ label, value, onChange, hint }: NrsSliderProps) {
 	return (
-		<FieldWrap label={label} hint={hint} fullWidth>
+		<FieldRow label={label} hint={hint} stacked>
 			<div className="flex items-center gap-3">
 				<input
 					type="range"
@@ -411,7 +543,7 @@ export function NrsSlider({ label, value, onChange, hint }: NrsSliderProps) {
 					onChange={(e) => onChange(Number(e.target.value))}
 					className="flex-1 accent-[color:var(--accent)]"
 				/>
-				<span className="w-8 text-center text-sm font-semibold text-[color:var(--foreground)]">
+				<span className="w-8 text-center text-[15px] font-semibold text-[color:var(--foreground)]">
 					{value ?? 0}
 				</span>
 			</div>
@@ -419,11 +551,11 @@ export function NrsSlider({ label, value, onChange, hint }: NrsSliderProps) {
 				<span>0 – No pain</span>
 				<span>10 – Worst possible</span>
 			</div>
-		</FieldWrap>
+		</FieldRow>
 	);
 }
 
-// ── Checkbox group ────────────────────────────────────────────────────────────
+// ── Checkbox group (multi-select chips) ───────────────────────────────────────
 
 type CheckboxGroupProps = {
 	label: string;
@@ -451,24 +583,29 @@ export function CheckboxGroup({
 	}
 
 	return (
-		<FieldWrap label={label} hint={hint} fullWidth>
-			<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-				{options.map((opt) => (
-					<label
-						key={opt.value}
-						className="flex cursor-pointer items-center gap-2 text-sm"
-					>
-						<input
-							type="checkbox"
-							checked={current.includes(opt.value)}
-							onChange={() => toggle(opt.value)}
-							className="accent-[color:var(--accent)]"
-						/>
-						{opt.label}
-					</label>
-				))}
+		<FieldRow label={label} hint={hint} stacked>
+			<div className="flex flex-wrap gap-2">
+				{options.map((opt) => {
+					const active = current.includes(opt.value);
+					return (
+						<button
+							key={opt.value}
+							type="button"
+							aria-pressed={active}
+							onClick={() => toggle(opt.value)}
+							className={[
+								"min-h-10 rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors",
+								active
+									? "border-[color:var(--accent)] bg-[color:var(--accent)] text-white"
+									: "border-[color:var(--border-strong)] bg-[color:var(--surface-strong)] text-[color:var(--muted-strong)] hover:bg-[color:var(--surface)]",
+							].join(" ")}
+						>
+							{opt.label}
+						</button>
+					);
+				})}
 			</div>
-		</FieldWrap>
+		</FieldRow>
 	);
 }
 
@@ -488,7 +625,7 @@ export function InfoBanner({ children, variant = "info" }: InfoBannerProps) {
 
 	return (
 		<div
-			className={`rounded-lg border px-4 py-3 text-sm ${styles[variant]}`}
+			className={`rounded-lg border px-4 py-3 text-[15px] leading-relaxed ${styles[variant]}`}
 		>
 			{children}
 		</div>

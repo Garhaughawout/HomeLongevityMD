@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo } from "react";
 import type { FrailScaleData } from "@/types/intake";
-import { YesNoField, SelectField, TextareaField, InfoBanner } from "./fields";
+import {
+	FieldGroup,
+	YesNoField,
+	ChipSelectField,
+	CheckboxGroup,
+	TextareaField,
+	InfoBanner,
+} from "./fields";
 
 type Props = {
 	value: FrailScaleData;
@@ -16,6 +23,22 @@ function set<K extends keyof FrailScaleData>(
 ): FrailScaleData {
 	return { ...prev, [key]: val };
 }
+
+const ILLNESS_OPTIONS = [
+	{ value: "hypertension", label: "Hypertension" },
+	{ value: "diabetes", label: "Diabetes" },
+	{ value: "cancer", label: "Cancer" },
+	{ value: "chronic_lung_disease", label: "Chronic lung disease" },
+	{ value: "heart_attack", label: "Heart attack" },
+	{ value: "congestive_heart_failure", label: "Congestive heart failure" },
+	{ value: "angina", label: "Angina" },
+	{ value: "asthma", label: "Asthma" },
+	{ value: "arthritis", label: "Arthritis" },
+	{ value: "stroke", label: "Stroke" },
+	{ value: "kidney_disease", label: "Kidney disease" },
+] as const;
+
+type IllnessKey = (typeof ILLNESS_OPTIONS)[number]["value"];
 
 export function SectionFrailScale({ value, onChange }: Props) {
 	const s = value;
@@ -71,29 +94,21 @@ export function SectionFrailScale({ value, onChange }: Props) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fatigueScore, resistanceScore, ambulationScore, illnessCount, weightLossScore, totalScore, frailtyCategory]);
 
-	return (
-		<div className="space-y-6">
-			<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm">
-				<p className="text-[color:var(--muted)]">
-					<span className="font-medium text-[color:var(--foreground)]">
-						FRAIL Scale
-					</span>{" "}
-					— 5-item frailty screening. Score: 0 = robust, 1–2 = pre-frail,
-					3+ = frail.
-				</p>
-			</div>
+	const selectedIllnesses = ILLNESS_OPTIONS
+		.filter((o) => s.illnesses?.[o.value])
+		.map((o) => o.value as string);
 
-			{/* F — Fatigue */}
-			<fieldset className="space-y-3">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					F — Fatigue
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					How much of the time during the past 4 weeks did you feel
-					tired?
-				</p>
-				<SelectField
-					label="Response"
+	return (
+		<div className="space-y-5">
+			<InfoBanner variant="info">
+				<strong>FRAIL Scale</strong> — 5-item frailty screen, 1 point per
+				positive item. 0 = robust, 1–2 = pre-frail, 3+ = frail.
+			</InfoBanner>
+
+			<FieldGroup legend="FRAIL screening questions" badge={`${totalScore}/5`}>
+				<ChipSelectField
+					label="F — How much of the time during the past 4 weeks did you feel tired?"
+					hint={`All or most of the time scores 1 point · current: ${fatigueScore}`}
 					value={s.fatigue_response}
 					onChange={(v) => u("fatigue_response", v)}
 					options={[
@@ -104,23 +119,9 @@ export function SectionFrailScale({ value, onChange }: Props) {
 						{ value: "none_of_the_time", label: "None of the time" },
 					]}
 				/>
-				<p className="text-xs text-[color:var(--muted)]">
-					Score: {fatigueScore} (all/most of the time = 1)
-				</p>
-			</fieldset>
-
-			{/* R — Resistance */}
-			<fieldset className="space-y-3">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					R — Resistance
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					By yourself and without using any special equipment, how much
-					difficulty do you have walking 10 steps alone without
-					resting?
-				</p>
-				<SelectField
-					label="Response"
+				<ChipSelectField
+					label="R — By yourself and without special equipment, how much difficulty do you have walking up 10 steps without resting?"
+					hint={`Any difficulty scores 1 point · current: ${resistanceScore}`}
 					value={s.resistance_response}
 					onChange={(v) => u("resistance_response", v)}
 					options={[
@@ -130,23 +131,9 @@ export function SectionFrailScale({ value, onChange }: Props) {
 						{ value: "unable", label: "Unable" },
 					]}
 				/>
-				<p className="text-xs text-[color:var(--muted)]">
-					Score: {resistanceScore} (some/much/unable = 1)
-				</p>
-			</fieldset>
-
-			{/* A — Ambulation */}
-			<fieldset className="space-y-3">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					A — Ambulation
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					By yourself and without using any special equipment, how much
-					difficulty do you have walking several hundred yards alone
-					without resting?
-				</p>
-				<SelectField
-					label="Response"
+				<ChipSelectField
+					label="A — By yourself and without special equipment, how much difficulty do you have walking several hundred yards without resting?"
+					hint={`Any difficulty scores 1 point · current: ${ambulationScore}`}
 					value={s.ambulation_response}
 					onChange={(v) => u("ambulation_response", v)}
 					options={[
@@ -156,75 +143,27 @@ export function SectionFrailScale({ value, onChange }: Props) {
 						{ value: "unable", label: "Unable" },
 					]}
 				/>
-				<p className="text-xs text-[color:var(--muted)]">
-					Score: {ambulationScore} (some/much/unable = 1)
-				</p>
-			</fieldset>
-
-			{/* I — Illnesses */}
-			<fieldset className="space-y-3">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					I — Illnesses
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					Select all conditions the client has been diagnosed with:
-				</p>
-				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-					{([
-						["hypertension", "Hypertension"],
-						["diabetes", "Diabetes"],
-						["cancer", "Cancer"],
-						["chronic_lung_disease", "Chronic Lung Disease"],
-						["heart_attack", "Heart Attack"],
-						["congestive_heart_failure", "Congestive Heart Failure"],
-						["angina", "Angina"],
-						["asthma", "Asthma"],
-						["arthritis", "Arthritis"],
-						["stroke", "Stroke"],
-						["kidney_disease", "Kidney Disease"],
-					] as const).map(([key, label]) => (
-						<label
-							key={key}
-							className="flex cursor-pointer items-center gap-2 text-sm"
-						>
-							<input
-								type="checkbox"
-								checked={s.illnesses?.[key] ?? false}
-								onChange={(e) =>
-									u("illnesses", {
-										...s.illnesses,
-										[key]: e.target.checked,
-									})
-								}
-								className="accent-[color:var(--accent)]"
-							/>
-							{label}
-						</label>
-					))}
-				</div>
-				<p className="text-xs text-[color:var(--muted)]">
-					Count: {illnessCount} | Score: {illnessScore} (≥5 illnesses = 1)
-				</p>
-			</fieldset>
-
-			{/* L — Loss of Weight */}
-			<fieldset className="space-y-3">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					L — Loss of Weight
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					In the past year, have you lost 10 pounds or more without
-					trying?
-				</p>
+				<CheckboxGroup
+					label="I — Which of these conditions has the client been diagnosed with?"
+					hint={`${illnessCount} selected · 5 or more scores 1 point · current: ${illnessScore}`}
+					options={[...ILLNESS_OPTIONS]}
+					values={selectedIllnesses}
+					onChange={(list) =>
+						u(
+							"illnesses",
+							Object.fromEntries(
+								ILLNESS_OPTIONS.map((o) => [o.value, list.includes(o.value)])
+							) as Record<IllnessKey, boolean>
+						)
+					}
+				/>
 				<YesNoField
-					label="Unintentional weight loss ≥ 10 lbs"
+					label="L — In the past year, have you lost 10 pounds or more without trying?"
+					hint={`Yes scores 1 point · current: ${weightLossScore}`}
 					value={s.weight_loss_response}
 					onChange={(v) => u("weight_loss_response", v)}
 				/>
-				<p className="text-xs text-[color:var(--muted)]">
-					Score: {weightLossScore} (yes = 1)
-				</p>
-			</fieldset>
+			</FieldGroup>
 
 			<InfoBanner
 				variant={totalScore >= 3 ? "warning" : totalScore >= 1 ? "info" : "success"}
@@ -236,15 +175,13 @@ export function SectionFrailScale({ value, onChange }: Props) {
 				{totalScore >= 3 && (
 					<>
 						{" — "}
-						<strong>
-							Frailty &amp; Medical Pathway (Tier 2) triggered.
-						</strong>
+						<strong>Frailty &amp; Medical Pathway (Tier 2) triggered.</strong>
 					</>
 				)}
 			</InfoBanner>
 
 			<TextareaField
-				label="Clinician Notes"
+				label="Clinician notes"
 				value={s.notes}
 				onChange={(v) => u("notes", v)}
 				placeholder="Additional frailty observations…"

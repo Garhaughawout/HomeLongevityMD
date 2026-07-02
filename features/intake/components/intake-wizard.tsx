@@ -24,7 +24,7 @@ import { SectionHomeFast } from "./section-home-fast";
 import { SectionAdlIadl } from "./section-adl-iadl";
 import { SectionTugTest } from "./section-tug-test";
 import { SectionFrailScale } from "./section-frail-scale";
-import { SectionMmse } from "./section-mmse";
+import { SectionMmse, mmseHasAnswers } from "./section-mmse";
 import { SectionOtClinicalJudgment } from "./section-ot-clinical-judgment";
 import { SectionBergBalance } from "./section-berg-balance";
 import { SectionTier2Cognitive } from "./section-tier2-cognitive";
@@ -33,6 +33,7 @@ import { SectionTier2Environmental } from "./section-tier2-environmental";
 import { SectionPhysicianReview } from "./section-physician-review";
 import { SectionHomeModifications } from "./section-home-modifications";
 import { IntakeReview } from "./intake-review";
+import { extractHomeFindings } from "@/features/intake/lib/findings";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -143,9 +144,10 @@ export function IntakeWizard({ client, intake }: Props) {
 			triggers.add("berg_balance");
 		}
 
-		// MMSE < 24 → Cognitive Pathway
+		// MMSE < 24 → Cognitive Pathway. Requires actual item answers so a
+		// stored total_score of 0 from an untouched section can't trigger it.
 		const mmseTotal = mmse.total_score;
-		if (mmseTotal !== undefined && mmseTotal < 24) {
+		if (mmseHasAnswers(mmse) && mmseTotal !== undefined && mmseTotal < 24) {
 			triggers.add("tier2_cognitive");
 		}
 
@@ -167,6 +169,13 @@ export function IntakeWizard({ client, intake }: Props) {
 	// ── Build dynamic step list ────────────────────────────────────────────────
 
 	const steps = useMemo(() => buildWizardSteps(activeTriggers), [activeTriggers]);
+
+	// ── Issues flagged during assessment (drives modification suggestions) ─────
+
+	const homeFindings = useMemo(
+		() => extractHomeFindings(homeFast, tier2Environmental),
+		[homeFast, tier2Environmental]
+	);
 
 	// ── Current section key + data ──────────────────────────────────────────────
 
@@ -410,6 +419,7 @@ export function IntakeWizard({ client, intake }: Props) {
 						<SectionHomeModifications
 							value={homeModifications}
 							onChange={setHomeModifications}
+							findings={homeFindings}
 						/>
 					)}
 					{isReviewStep && intakeId && (

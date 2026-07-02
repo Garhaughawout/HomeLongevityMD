@@ -5,6 +5,7 @@ import type { ClientRow } from "@/types/supabase";
 import type { ClientIntakeSections } from "@/types/intake";
 import { INTAKE_SECTION_LABELS } from "@/types/domain";
 import { submitIntakeAction } from "@/features/intake/actions/submit-intake";
+import { extractHomeFindings } from "@/features/intake/lib/findings";
 
 type Props = {
 	client: ClientRow;
@@ -43,6 +44,12 @@ export function IntakeReview({
 }: Props) {
 	const [isPending, startTransition] = useTransition();
 	const [error, setError] = useState<string | null>(null);
+
+	const findings = extractHomeFindings(
+		sections.home_fast,
+		sections.tier2_environmental
+	);
+	const modifications = sections.home_modifications;
 
 	function handleSubmit() {
 		setError(null);
@@ -109,6 +116,55 @@ export function IntakeReview({
 					})}
 				</ul>
 			</div>
+
+			{findings.length > 0 && (
+				<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
+					<div className="mb-3 flex items-center justify-between border-b border-[color:var(--border)] pb-3">
+						<h3 className="text-base font-semibold text-[color:var(--foreground)]">
+							Issues identified in the home
+						</h3>
+						<span className="rounded-full bg-amber-100 px-2.5 py-1 text-sm font-medium text-amber-800">
+							{findings.length} found
+						</span>
+					</div>
+					<ul className="divide-y divide-[color:var(--border)]">
+						{findings.map((f) => {
+							const addressed = (modifications?.items ?? []).some(
+								(item) => item.triggered_by === f.triggered_by
+							);
+							return (
+								<li
+									key={f.id}
+									className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2.5"
+								>
+									<div className="min-w-[14rem] flex-1">
+										<p className="text-sm leading-snug text-[color:var(--foreground)]">
+											{f.description}
+										</p>
+										<p className="mt-0.5 text-xs text-[color:var(--muted)]">
+											{f.area}
+											{" · "}
+											{f.source === "home_fast"
+												? "HOME FAST"
+												: "Tier 2 environmental"}
+										</p>
+									</div>
+									<span
+										className={[
+											"shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
+											addressed
+												? "bg-emerald-100 text-emerald-800"
+												: "bg-amber-100 text-amber-800",
+										].join(" ")}
+									>
+										{addressed ? "Modification planned" : "Not addressed"}
+									</span>
+								</li>
+							);
+						})}
+					</ul>
+				</div>
+			)}
 
 			<div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
 				<strong>Before submitting:</strong> Review all sections above.

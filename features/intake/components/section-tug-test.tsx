@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { TugTestData } from "@/types/intake";
-import { NumberField, TextareaField, InfoBanner, YesNoField } from "./fields";
+import { FieldGroup, NumberField, TextareaField, InfoBanner, YesNoField } from "./fields";
 
 type Props = {
 	value: TugTestData;
@@ -42,37 +42,36 @@ export function SectionTugTest({ value, onChange }: Props) {
 	}, [seconds]);
 
 	return (
-		<div className="space-y-6">
-			<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm">
-				<p className="text-[color:var(--muted)]">
-					<span className="font-medium text-[color:var(--foreground)]">
-						Timed Up and Go (TUG) Test
-					</span>{" "}
-					— Client sits in a standard chair, stands on the word &ldquo;go,&rdquo;
-					walks 3 meters at normal pace, turns, walks back, and sits down.
-					Record total time in seconds.
-				</p>
-			</div>
+		<div className="space-y-5">
+			<InfoBanner variant="info">
+				<strong>Timed Up and Go (TUG) Test</strong> — Client sits in a
+				standard chair, stands on the word &ldquo;go,&rdquo; walks 3 meters at
+				normal pace, turns, walks back, and sits down. Record total time in
+				seconds.
+			</InfoBanner>
 
-			<YesNoField
-				label="TUG test performed"
-				value={s.performed}
-				onChange={(v) => u("performed", v)}
-			/>
-
-			{s.performed && (
-				<>
+			<FieldGroup legend="Test result">
+				<YesNoField
+					label="Was the TUG test performed?"
+					value={s.performed}
+					onChange={(v) => u("performed", v)}
+				/>
+				{s.performed && (
 					<NumberField
-						label="TUG Time"
+						label="Total time"
 						value={s.seconds}
 						onChange={(v) => u("seconds", v)}
 						min={0}
 						max={120}
 						step={0.1}
 						unit="seconds"
-						hint="< 12 sec = lower fall risk | ≥ 12 sec = elevated fall risk | ≥ 20 sec = significant impairment"
+						hint="Under 12 s = lower fall risk · 12 s or more = elevated fall risk · 20 s or more = significant impairment"
 					/>
+				)}
+			</FieldGroup>
 
+			{s.performed && (
+				<>
 					{seconds !== undefined && seconds < 12 && (
 						<InfoBanner variant="success">
 							TUG time {seconds}s — within normal range. No

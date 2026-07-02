@@ -360,6 +360,7 @@ export interface BergBalanceData {
 	reaching_forward?: number;
 	retrieving_object?: number;
 	turning_behind?: number;
+	turning_360?: number;
 	alternate_foot_stool?: number;
 	feet_tandem?: number;
 	single_leg_stand?: number;

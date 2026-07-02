@@ -65,9 +65,12 @@ const CATEGORY_ORDER: RiskCategory[] = [
 function scoreHomeFast(d: HomeFastData | null | undefined): number {
 	if (!d || !d.items || d.items.length === 0) return 50;
 
-	const hazardCount =
-		d.hazard_count ??
-		d.items.filter((item) => item.response === "no").length;
+	// Questions are phrased hazard-positively ("Are grab bars absent…?"),
+	// so "yes" flags the hazard. Recompute from raw items rather than
+	// trusting a stored hazard_count, which older drafts saved inverted.
+	const hazardCount = d.items.filter(
+		(item) => item.response === "yes"
+	).length;
 
 	if (hazardCount === 0) return 0;
 	if (hazardCount <= 3) return 20;

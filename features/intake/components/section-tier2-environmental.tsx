@@ -80,7 +80,7 @@ export function SectionTier2Environmental({ value, onChange }: Props) {
 			</FieldGroup>
 
 			<div className="space-y-4">
-				<h3 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
+				<h3 className="text-base font-semibold text-[color:var(--foreground)]">
 					Room-by-Room Analysis
 				</h3>
 				{(s.rooms ?? []).map((room, idx) => (

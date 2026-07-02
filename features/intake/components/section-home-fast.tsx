@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { HomeFastData, HomeFastItem, YesNoNa } from "@/types/intake";
-import { FieldGroup, TextareaField, InfoBanner } from "./fields";
+import { FieldGroup, FieldRow, SegmentedControl, TextareaField, InfoBanner } from "./fields";
 
 type Props = {
 	value: HomeFastData;
@@ -92,31 +92,28 @@ export function SectionHomeFast({ value, onChange }: Props) {
 		return map;
 	}, [items]);
 
-	// Compute hazard count
+	// Compute hazard count — questions are phrased hazard-positively
+	// ("Are grab bars absent…?"), so "yes" flags the hazard.
 	const hazardCount = useMemo(() => {
-		return items.filter((item) => item.response === "no").length;
+		return items.filter((item) => item.response === "yes").length;
 	}, [items]);
 
 	function updateItem(id: string, response: YesNoNa) {
 		const newItems = items.map((item) =>
 			item.id === id ? { ...item, response } : item
 		);
-		const newHazardCount = newItems.filter((i) => i.response === "no").length;
+		const newHazardCount = newItems.filter((i) => i.response === "yes").length;
 		onChange({ ...s, items: newItems, hazard_count: newHazardCount });
 	}
 
 	return (
-		<div className="space-y-6">
-			<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm">
-				<p className="text-[color:var(--muted)]">
-					<span className="font-medium text-[color:var(--foreground)]">
-						HOME FAST
-					</span>{" "}
-					— Home Fall-Hazard Assessment for Older Adults. Answer each
-					item: <strong>Yes</strong> (safe/present), <strong>No</strong>{" "}
-					(hazard/absent), or <strong>N/A</strong> (not applicable).
-				</p>
-			</div>
+		<div className="space-y-5">
+			<InfoBanner variant="info">
+				<strong>HOME FAST</strong> — Home Fall-Hazard Assessment for Older
+				Adults. Answer each item as asked: <strong>Yes</strong> flags the
+				hazard, <strong>No</strong> means no hazard, <strong>N/A</strong>{" "}
+				when not applicable.
+			</InfoBanner>
 
 			{hazardCount > 0 && (
 				<InfoBanner variant="warning">
@@ -126,35 +123,31 @@ export function SectionHomeFast({ value, onChange }: Props) {
 				</InfoBanner>
 			)}
 
-			{Array.from(sections.entries()).map(([sectionName, sectionItems]) => (
-				<FieldGroup key={sectionName} legend={sectionName}>
-					{sectionItems.map((item) => (
-						<div key={item.id} className="sm:col-span-2">
-							<label className="mb-1.5 block text-sm font-medium text-[color:var(--foreground)]">
-								{item.question}
-							</label>
-							<div className="flex gap-4">
-								{(["yes", "no", "na"] as const).map((opt) => (
-									<label
-										key={opt}
-										className="flex cursor-pointer items-center gap-1.5 text-sm"
-									>
-										<input
-											type="radio"
-											checked={item.response === opt}
-											onChange={() => updateItem(item.id, opt)}
-											className="accent-[color:var(--accent)]"
-										/>
-										{opt === "na"
-											? "N/A"
-											: opt.charAt(0).toUpperCase() + opt.slice(1)}
-									</label>
-								))}
-							</div>
-						</div>
-					))}
-				</FieldGroup>
-			))}
+			{Array.from(sections.entries()).map(([sectionName, sectionItems]) => {
+				const answered = sectionItems.filter((i) => i.response !== undefined).length;
+				return (
+					<FieldGroup
+						key={sectionName}
+						legend={sectionName}
+						badge={`${answered} of ${sectionItems.length}`}
+					>
+						{sectionItems.map((item) => (
+							<FieldRow key={item.id} label={item.question}>
+								<SegmentedControl
+									ariaLabel={item.question}
+									value={item.response}
+									onChange={(v) => updateItem(item.id, v)}
+									options={[
+										{ value: "yes", label: "Yes" },
+										{ value: "no", label: "No" },
+										{ value: "na", label: "N/A" },
+									]}
+								/>
+							</FieldRow>
+						))}
+					</FieldGroup>
+				);
+			})}
 
 			<TextareaField
 				label="Clinician Notes"

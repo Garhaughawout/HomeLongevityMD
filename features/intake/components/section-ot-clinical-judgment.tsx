@@ -1,7 +1,7 @@
 "use client";
 
 import type { OtClinicalJudgmentData } from "@/types/intake";
-import { TextareaField, SelectField, CheckboxGroup, InfoBanner } from "./fields";
+import { FieldGroup, TextareaField, ChipSelectField, CheckboxGroup, InfoBanner } from "./fields";
 
 type Props = {
 	value: OtClinicalJudgmentData;
@@ -37,36 +37,33 @@ export function SectionOtClinicalJudgment({ value, onChange }: Props) {
 		onChange(set(s, k, v));
 
 	return (
-		<div className="space-y-6">
-			<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm">
-				<p className="text-[color:var(--muted)]">
-					<span className="font-medium text-[color:var(--foreground)]">
-						OT Clinical Judgment
-					</span>{" "}
-					— Qualitative observations from the assessing therapist that
-					can adjust the computed risk level. Select all that apply.
-				</p>
-			</div>
+		<div className="space-y-5">
+			<InfoBanner variant="info">
+				<strong>OT Clinical Judgment</strong> — Qualitative observations from
+				the assessing therapist that can adjust the computed risk level.
+				Select all that apply.
+			</InfoBanner>
 
-			<CheckboxGroup
-				label="Clinical Observations"
-				options={OBSERVATION_OPTIONS}
-				values={s.observations}
-				onChange={(v) => u("observations", v)}
-				hint="Select all observed concerns. These can elevate the computed risk category."
-			/>
-
-			<SelectField
-				label="Risk Adjustment"
-				value={s.risk_adjustment}
-				onChange={(v) => u("risk_adjustment", v)}
-				options={[
-					{ value: "none", label: "None — no adjustment" },
-					{ value: "elevate", label: "Elevate — increase risk by one level" },
-					{ value: "significantly_elevate", label: "Significantly Elevate — increase risk by two levels" },
-				]}
-				hint="Use clinical judgment to adjust the computed risk. This modifies the domain score, not a direct category override."
-			/>
+			<FieldGroup legend="Therapist assessment">
+				<CheckboxGroup
+					label="Which concerns did you observe during the assessment?"
+					options={OBSERVATION_OPTIONS}
+					values={s.observations}
+					onChange={(v) => u("observations", v)}
+					hint="Select all observed concerns. These can elevate the computed risk category."
+				/>
+				<ChipSelectField
+					label="Should the computed risk level be adjusted?"
+					value={s.risk_adjustment}
+					onChange={(v) => u("risk_adjustment", v)}
+					options={[
+						{ value: "none", label: "No adjustment" },
+						{ value: "elevate", label: "Elevate one level" },
+						{ value: "significantly_elevate", label: "Elevate two levels" },
+					]}
+					hint="Modifies the domain score, not a direct category override."
+				/>
+			</FieldGroup>
 
 			{(s.observations?.length ?? 0) > 0 && (
 				<InfoBanner variant="info">

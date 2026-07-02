@@ -2,7 +2,13 @@
 
 import { useMemo } from "react";
 import type { BergBalanceData } from "@/types/intake";
-import { NumberField, TextareaField, InfoBanner } from "./fields";
+import {
+	FieldGroup,
+	FieldRow,
+	SegmentedControl,
+	TextareaField,
+	InfoBanner,
+} from "./fields";
 
 type Props = {
 	value: BergBalanceData;
@@ -20,24 +26,29 @@ function set<K extends keyof BergBalanceData>(
 interface BergItem {
 	key: keyof BergBalanceData;
 	label: string;
-	hint?: string;
 }
 
 const BERG_ITEMS: BergItem[] = [
-	{ key: "sitting_to_standing", label: "Sitting to Standing" },
-	{ key: "standing_to_sitting", label: "Standing to Sitting" },
+	{ key: "sitting_to_standing", label: "Sitting to standing" },
+	{ key: "standing_unsupported", label: "Standing unsupported" },
+	{ key: "sitting_unsupported", label: "Sitting unsupported" },
+	{ key: "standing_to_sitting", label: "Standing to sitting" },
 	{ key: "transfers", label: "Transfers" },
-	{ key: "standing_unsupported", label: "Standing Unsupported" },
-	{ key: "sitting_unsupported", label: "Sitting Unsupported" },
-	{ key: "eyes_closed_standing", label: "Standing with Eyes Closed" },
-	{ key: "feet_together_standing", label: "Standing with Feet Together" },
-	{ key: "reaching_forward", label: "Reaching Forward" },
-	{ key: "retrieving_object", label: "Retrieving Object from Floor" },
-	{ key: "turning_behind", label: "Turning to Look Behind" },
-	{ key: "alternate_foot_stool", label: "Alternate Foot on Stool" },
-	{ key: "feet_tandem", label: "Standing in Tandem Position" },
-	{ key: "single_leg_stand", label: "Standing on One Leg" },
+	{ key: "eyes_closed_standing", label: "Standing with eyes closed" },
+	{ key: "feet_together_standing", label: "Standing with feet together" },
+	{ key: "reaching_forward", label: "Reaching forward with outstretched arm" },
+	{ key: "retrieving_object", label: "Retrieving object from the floor" },
+	{ key: "turning_behind", label: "Turning to look behind" },
+	{ key: "turning_360", label: "Turning 360 degrees" },
+	{ key: "alternate_foot_stool", label: "Placing alternate foot on stool" },
+	{ key: "feet_tandem", label: "Standing with one foot in front (tandem)" },
+	{ key: "single_leg_stand", label: "Standing on one leg" },
 ];
+
+const SCORE_OPTIONS = [0, 1, 2, 3, 4].map((n) => ({
+	value: n,
+	label: String(n),
+}));
 
 export function SectionBergBalance({ value, onChange }: Props) {
 	const s = value;
@@ -51,37 +62,36 @@ export function SectionBergBalance({ value, onChange }: Props) {
 		}, 0);
 	}, [s]);
 
-	return (
-		<div className="space-y-6">
-			<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm">
-				<p className="text-[color:var(--muted)]">
-					<span className="font-medium text-[color:var(--foreground)]">
-						Berg Balance Scale
-					</span>{" "}
-					— 14-item balance assessment. Score each item 0–4:
-					0 = cannot perform, 4 = independent. Maximum: 56.{" "}
-					<strong>&lt; 45 = elevated fall risk.</strong>
-				</p>
-			</div>
+	const answeredCount = BERG_ITEMS.filter(
+		(item) => s[item.key] !== undefined
+	).length;
 
-			<fieldset className="space-y-4">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					14 Balance Tasks
-				</legend>
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					{BERG_ITEMS.map((item) => (
-						<NumberField
-							key={item.key}
-							label={item.label}
+	return (
+		<div className="space-y-5">
+			<InfoBanner variant="info">
+				<strong>Berg Balance Scale</strong> — 14 balance tasks scored 0–4
+				(0 = cannot perform, 4 = independent). Maximum 56;{" "}
+				<strong>below 45 indicates elevated fall risk.</strong>
+			</InfoBanner>
+
+			<FieldGroup
+				legend="Balance tasks"
+				description={`${answeredCount} of ${BERG_ITEMS.length} tasks scored`}
+				badge={`${totalScore}/56`}
+			>
+				{BERG_ITEMS.map((item) => (
+					<FieldRow key={item.key} label={item.label}>
+						<SegmentedControl
+							ariaLabel={item.label}
 							value={s[item.key] as number | undefined}
-							onChange={(v) => u(item.key, v as BergBalanceData[typeof item.key])}
-							min={0}
-							max={4}
-							step={1}
+							onChange={(v) =>
+								u(item.key, v as BergBalanceData[typeof item.key])
+							}
+							options={SCORE_OPTIONS}
 						/>
-					))}
-				</div>
-			</fieldset>
+					</FieldRow>
+				))}
+			</FieldGroup>
 
 			<InfoBanner variant={totalScore < 45 ? "warning" : "success"}>
 				<strong>Berg Balance Total: {totalScore}/56</strong> —{" "}
@@ -91,7 +101,7 @@ export function SectionBergBalance({ value, onChange }: Props) {
 			</InfoBanner>
 
 			<TextareaField
-				label="Clinician Notes"
+				label="Clinician notes"
 				value={s.notes}
 				onChange={(v) => u("notes", v)}
 				placeholder="Additional balance and mobility observations…"

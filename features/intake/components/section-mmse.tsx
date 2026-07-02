@@ -1,13 +1,39 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import type { MmseData } from "@/types/intake";
-import { NumberField, TextareaField, InfoBanner } from "./fields";
+import {
+	FieldGroup,
+	FieldRow,
+	SegmentedControl,
+	TextareaField,
+	InfoBanner,
+} from "./fields";
 
 type Props = {
 	value: MmseData;
 	onChange: (v: MmseData) => void;
 };
+
+// ── Answer detection ──────────────────────────────────────────────────────────
+// Exported so the wizard can distinguish a scored MMSE from an untouched one —
+// the Tier 2 cognitive trigger must never fire off an empty section.
+
+export function mmseHasAnswers(s: MmseData): boolean {
+	const time = s.orientation_time ?? {};
+	const place = s.orientation_place ?? {};
+	const items: Array<number | undefined> = [
+		time.year, time.season, time.date, time.day, time.month,
+		place.state, place.county, place.town, place.facility, place.floor,
+		s.registration_word1, s.registration_word2, s.registration_word3,
+		s.serial7_1, s.serial7_2, s.serial7_3, s.serial7_4, s.serial7_5,
+		s.world_backward,
+		s.recall_word1, s.recall_word2, s.recall_word3,
+		s.name_pen, s.name_watch, s.repeat_phrase, s.three_step_command,
+		s.read_obey, s.write_sentence, s.copy_pentagons,
+	];
+	return items.some((v) => v !== undefined);
+}
 
 function set<K extends keyof MmseData>(
 	prev: MmseData,
@@ -17,257 +43,284 @@ function set<K extends keyof MmseData>(
 	return { ...prev, [key]: val };
 }
 
-// Binary scorer: 0 or 1 per item
-function ScoreInput({
+// ── Score row: Correct/Incorrect for 1-pt items, 0..max for multi-pt ─────────
+
+function ScoreItem({
 	label,
 	value,
 	onChange,
+	max = 1,
+	hint,
 }: {
 	label: string;
 	value: number | undefined;
 	onChange: (v: number) => void;
+	max?: number;
+	hint?: string;
 }) {
+	const options =
+		max === 1
+			? [
+					{ value: 1, label: "Correct" },
+					{ value: 0, label: "Incorrect" },
+				]
+			: Array.from({ length: max + 1 }, (_, n) => ({
+					value: n,
+					label: String(n),
+				}));
 	return (
-		<div className="flex items-center gap-3">
-			<span className="text-sm text-[color:var(--foreground)]">{label}</span>
-			<div className="flex gap-2">
-				<label className="flex cursor-pointer items-center gap-1 text-sm">
-					<input
-						type="radio"
-						checked={value === 1}
-						onChange={() => onChange(1)}
-						className="accent-[color:var(--accent)]"
-					/>
-					Correct (1)
-				</label>
-				<label className="flex cursor-pointer items-center gap-1 text-sm">
-					<input
-						type="radio"
-						checked={value === 0}
-						onChange={() => onChange(0)}
-						className="accent-[color:var(--accent)]"
-					/>
-					Incorrect (0)
-				</label>
-			</div>
-		</div>
+		<FieldRow label={label} hint={hint}>
+			<SegmentedControl
+				ariaLabel={label}
+				value={value}
+				onChange={onChange}
+				options={options}
+			/>
+		</FieldRow>
 	);
 }
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+const SERIAL7_KEYS = ["serial7_1", "serial7_2", "serial7_3", "serial7_4", "serial7_5"] as const;
 
 export function SectionMmse({ value, onChange }: Props) {
 	const s = value;
 	const u = <K extends keyof MmseData>(k: K, v: MmseData[K]) =>
 		onChange(set(s, k, v));
 
-	// Auto-compute subscores and total
-	const orientationScore = useMemo(() => {
-		const time = s.orientation_time
-			? Object.values(s.orientation_time).reduce((a, b) => a + (b ?? 0), 0)
-			: 0;
-		const place = s.orientation_place
-			? Object.values(s.orientation_place).reduce((a, b) => a + (b ?? 0), 0)
-			: 0;
-		return time + place;
-	}, [s.orientation_time, s.orientation_place]);
+	const hasAnswers = mmseHasAnswers(s);
 
-	const registrationScore = useMemo(() => {
-		return (s.registration_word1 ?? 0) + (s.registration_word2 ?? 0) + (s.registration_word3 ?? 0);
-	}, [s.registration_word1, s.registration_word2, s.registration_word3]);
+	// Attention & Calculation is scored by ONE of two methods. Which one is in
+	// play is derived from the data on load, then driven by the toggle below.
+	const serial7Answered = SERIAL7_KEYS.some((k) => s[k] !== undefined);
+	const [attentionMethod, setAttentionMethod] = useState<"serial7" | "world">(
+		() => (s.world_backward !== undefined && !serial7Answered ? "world" : "serial7")
+	);
 
-	const attentionScore = useMemo(() => {
-		if (s.attention_score !== undefined) return s.attention_score;
-		// Use serial 7s if present, else WORLD backwards
-		const serial7 = (s.serial7_1 ?? 0) + (s.serial7_2 ?? 0) + (s.serial7_3 ?? 0) + (s.serial7_4 ?? 0) + (s.serial7_5 ?? 0);
-		if (serial7 > 0) return serial7;
-		return s.world_backward ?? 0;
-	}, [s.attention_score, s.serial7_1, s.serial7_2, s.serial7_3, s.serial7_4, s.serial7_5, s.world_backward]);
+	function switchAttentionMethod(method: "serial7" | "world") {
+		setAttentionMethod(method);
+		// Clear the other method's answers so the score is unambiguous
+		if (method === "serial7") {
+			onChange({ ...s, world_backward: undefined });
+		} else {
+			onChange({
+				...s,
+				serial7_1: undefined,
+				serial7_2: undefined,
+				serial7_3: undefined,
+				serial7_4: undefined,
+				serial7_5: undefined,
+			});
+		}
+	}
 
-	const recallScore = useMemo(() => {
-		return (s.recall_word1 ?? 0) + (s.recall_word2 ?? 0) + (s.recall_word3 ?? 0);
-	}, [s.recall_word1, s.recall_word2, s.recall_word3]);
+	// ── Subscores (always derived from raw item answers, never from previously
+	//    stored computed fields — storing them back is what broke scoring before)
+	const orientationScore =
+		Object.values(s.orientation_time ?? {}).reduce((a, b) => a + (b ?? 0), 0) +
+		Object.values(s.orientation_place ?? {}).reduce((a, b) => a + (b ?? 0), 0);
 
-	const languageScore = useMemo(() => {
-		return (s.name_pen ?? 0) + (s.name_watch ?? 0) + (s.repeat_phrase ?? 0) + (s.three_step_command ?? 0) + (s.read_obey ?? 0) + (s.write_sentence ?? 0);
-	}, [s.name_pen, s.name_watch, s.repeat_phrase, s.three_step_command, s.read_obey, s.write_sentence]);
+	const registrationScore =
+		(s.registration_word1 ?? 0) + (s.registration_word2 ?? 0) + (s.registration_word3 ?? 0);
+
+	const attentionScore = serial7Answered
+		? SERIAL7_KEYS.reduce((sum, k) => sum + (s[k] ?? 0), 0)
+		: s.world_backward ?? 0;
+
+	const recallScore =
+		(s.recall_word1 ?? 0) + (s.recall_word2 ?? 0) + (s.recall_word3 ?? 0);
+
+	const languageScore =
+		(s.name_pen ?? 0) + (s.name_watch ?? 0) + (s.repeat_phrase ?? 0) +
+		(s.three_step_command ?? 0) + (s.read_obey ?? 0) + (s.write_sentence ?? 0);
 
 	const visuospatialScore = s.copy_pentagons ?? 0;
 
-	const totalScore = orientationScore + registrationScore + attentionScore + recallScore + languageScore + visuospatialScore;
+	const totalScore =
+		orientationScore + registrationScore + attentionScore +
+		recallScore + languageScore + visuospatialScore;
 
-	const interpretation: MmseData["interpretation"] = useMemo(() => {
-		if (totalScore >= 24) return "normal";
-		if (totalScore >= 18) return "mild_impairment";
-		if (totalScore >= 10) return "moderate_impairment";
-		return "severe_impairment";
-	}, [totalScore]);
+	const interpretation: MmseData["interpretation"] =
+		totalScore >= 24 ? "normal"
+		: totalScore >= 18 ? "mild_impairment"
+		: totalScore >= 10 ? "moderate_impairment"
+		: "severe_impairment";
 
-	// Sync computed values
+	// ── Sync computed fields into the section data ──────────────────────────────
+	// Only when at least one item has been answered — an untouched MMSE must not
+	// be stored with total_score 0, or the Tier 2 pathway triggers prematurely.
 	useEffect(() => {
-		onChange({
-			...s,
-			orientation_score: orientationScore,
-			registration_score: registrationScore,
-			attention_score: attentionScore,
-			recall_score: recallScore,
-			language_score: languageScore,
-			visuospatial_score: visuospatialScore,
-			total_score: totalScore,
-			interpretation,
-		});
+		if (!hasAnswers) {
+			if (s.total_score !== undefined || s.interpretation !== undefined) {
+				const cleaned = { ...s };
+				delete cleaned.orientation_score;
+				delete cleaned.registration_score;
+				delete cleaned.attention_score;
+				delete cleaned.recall_score;
+				delete cleaned.language_score;
+				delete cleaned.visuospatial_score;
+				delete cleaned.total_score;
+				delete cleaned.interpretation;
+				onChange(cleaned);
+			}
+			return;
+		}
+		if (
+			s.orientation_score !== orientationScore ||
+			s.registration_score !== registrationScore ||
+			s.attention_score !== attentionScore ||
+			s.recall_score !== recallScore ||
+			s.language_score !== languageScore ||
+			s.visuospatial_score !== visuospatialScore ||
+			s.total_score !== totalScore ||
+			s.interpretation !== interpretation
+		) {
+			onChange({
+				...s,
+				orientation_score: orientationScore,
+				registration_score: registrationScore,
+				attention_score: attentionScore,
+				recall_score: recallScore,
+				language_score: languageScore,
+				visuospatial_score: visuospatialScore,
+				total_score: totalScore,
+				interpretation,
+			});
+		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [orientationScore, registrationScore, attentionScore, recallScore, languageScore, visuospatialScore, totalScore, interpretation]);
+	}, [hasAnswers, orientationScore, registrationScore, attentionScore, recallScore, languageScore, visuospatialScore, totalScore, interpretation]);
 
 	return (
-		<div className="space-y-8">
-			<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm">
-				<p className="text-[color:var(--muted)]">
-					<span className="font-medium text-[color:var(--foreground)]">
-						Mini-Mental Status Examination (MMSE)
-					</span>{" "}
-					— 30-point cognitive assessment. Score each task as Correct
-					(1) or Incorrect (0).
-				</p>
-			</div>
-
-			{/* 1. Orientation */}
-			<fieldset className="space-y-4">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					1. Orientation (10 points)
-				</legend>
-				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-					<div className="space-y-2">
-						<p className="text-xs font-medium text-[color:var(--muted)]">Time (5 pts)</p>
-						<ScoreInput label="Year" value={s.orientation_time?.year} onChange={(v) => u("orientation_time", { ...s.orientation_time, year: v })} />
-						<ScoreInput label="Season" value={s.orientation_time?.season} onChange={(v) => u("orientation_time", { ...s.orientation_time, season: v })} />
-						<ScoreInput label="Date" value={s.orientation_time?.date} onChange={(v) => u("orientation_time", { ...s.orientation_time, date: v })} />
-						<ScoreInput label="Day of week" value={s.orientation_time?.day} onChange={(v) => u("orientation_time", { ...s.orientation_time, day: v })} />
-						<ScoreInput label="Month" value={s.orientation_time?.month} onChange={(v) => u("orientation_time", { ...s.orientation_time, month: v })} />
-					</div>
-					<div className="space-y-2">
-						<p className="text-xs font-medium text-[color:var(--muted)]">Place (5 pts)</p>
-						<ScoreInput label="State" value={s.orientation_place?.state} onChange={(v) => u("orientation_place", { ...s.orientation_place, state: v })} />
-						<ScoreInput label="County" value={s.orientation_place?.county} onChange={(v) => u("orientation_place", { ...s.orientation_place, county: v })} />
-						<ScoreInput label="Town/City" value={s.orientation_place?.town} onChange={(v) => u("orientation_place", { ...s.orientation_place, town: v })} />
-						<ScoreInput label="Facility name" value={s.orientation_place?.facility} onChange={(v) => u("orientation_place", { ...s.orientation_place, facility: v })} />
-						<ScoreInput label="Floor" value={s.orientation_place?.floor} onChange={(v) => u("orientation_place", { ...s.orientation_place, floor: v })} />
-					</div>
-				</div>
-				<p className="text-xs text-[color:var(--muted)]">Subtotal: {orientationScore}/10</p>
-			</fieldset>
-
-			{/* 2. Registration */}
-			<fieldset className="space-y-4">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					2. Registration (3 points)
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					Name 3 objects: <strong>apple, penny, table</strong>. Ask
-					client to repeat. Score 1 point per correct repetition.
-				</p>
-				<div className="space-y-2">
-					<ScoreInput label="Apple" value={s.registration_word1} onChange={(v) => u("registration_word1", v)} />
-					<ScoreInput label="Penny" value={s.registration_word2} onChange={(v) => u("registration_word2", v)} />
-					<ScoreInput label="Table" value={s.registration_word3} onChange={(v) => u("registration_word3", v)} />
-				</div>
-				<p className="text-xs text-[color:var(--muted)]">Subtotal: {registrationScore}/3</p>
-			</fieldset>
-
-			{/* 3. Attention & Calculation */}
-			<fieldset className="space-y-4">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					3. Attention &amp; Calculation (5 points)
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					<strong>Option A:</strong> Serial 7s — subtract 7 from 100,
-					continue 5 times (93, 86, 79, 72, 65). 1 point per correct.
-				</p>
-				<div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
-					<ScoreInput label="93" value={s.serial7_1} onChange={(v) => u("serial7_1", v)} />
-					<ScoreInput label="86" value={s.serial7_2} onChange={(v) => u("serial7_2", v)} />
-					<ScoreInput label="79" value={s.serial7_3} onChange={(v) => u("serial7_3", v)} />
-					<ScoreInput label="72" value={s.serial7_4} onChange={(v) => u("serial7_4", v)} />
-					<ScoreInput label="65" value={s.serial7_5} onChange={(v) => u("serial7_5", v)} />
-				</div>
-				<p className="text-sm text-[color:var(--muted)]">— or —</p>
-				<p className="text-sm text-[color:var(--foreground)]">
-					<strong>Option B:</strong> Spell &ldquo;WORLD&rdquo; backwards.
-					1 point per correct letter.
-				</p>
-				<NumberField
-					label="WORLD backwards score (0–5)"
-					value={s.world_backward}
-					onChange={(v) => u("world_backward", v)}
-					min={0}
-					max={5}
-				/>
-				<p className="text-xs text-[color:var(--muted)]">Subtotal: {attentionScore}/5</p>
-			</fieldset>
-
-			{/* 4. Recall */}
-			<fieldset className="space-y-4">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					4. Recall (3 points)
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					Ask client to recall the 3 words from Registration. 1 point
-					per correct.
-				</p>
-				<div className="space-y-2">
-					<ScoreInput label="Apple" value={s.recall_word1} onChange={(v) => u("recall_word1", v)} />
-					<ScoreInput label="Penny" value={s.recall_word2} onChange={(v) => u("recall_word2", v)} />
-					<ScoreInput label="Table" value={s.recall_word3} onChange={(v) => u("recall_word3", v)} />
-				</div>
-				<p className="text-xs text-[color:var(--muted)]">Subtotal: {recallScore}/3</p>
-			</fieldset>
-
-			{/* 5. Language */}
-			<fieldset className="space-y-4">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					5. Language (8 points)
-				</legend>
-				<div className="space-y-2">
-					<ScoreInput label="Name a pen (1 pt)" value={s.name_pen} onChange={(v) => u("name_pen", v)} />
-					<ScoreInput label="Name a watch (1 pt)" value={s.name_watch} onChange={(v) => u("name_watch", v)} />
-					<ScoreInput label="Repeat: &ldquo;no ifs ands or buts&rdquo; (1 pt)" value={s.repeat_phrase} onChange={(v) => u("repeat_phrase", v)} />
-					<ScoreInput label="3-step command (3 pts)" value={s.three_step_command} onChange={(v) => u("three_step_command", v)} />
-					<ScoreInput label="Read & obey: &ldquo;close your eyes&rdquo; (1 pt)" value={s.read_obey} onChange={(v) => u("read_obey", v)} />
-					<ScoreInput label="Write a sentence (1 pt)" value={s.write_sentence} onChange={(v) => u("write_sentence", v)} />
-				</div>
-				<p className="text-xs text-[color:var(--muted)]">Subtotal: {languageScore}/8</p>
-			</fieldset>
-
-			{/* 6. Visuospatial */}
-			<fieldset className="space-y-4">
-				<legend className="text-sm font-semibold uppercase tracking-wide text-[color:var(--muted)]">
-					6. Visuospatial (1 point)
-				</legend>
-				<p className="text-sm text-[color:var(--foreground)]">
-					Ask client to copy intersecting pentagons.
-				</p>
-				<ScoreInput label="Copy pentagons (1 pt)" value={s.copy_pentagons} onChange={(v) => u("copy_pentagons", v)} />
-				<p className="text-xs text-[color:var(--muted)]">Subtotal: {visuospatialScore}/1</p>
-			</fieldset>
-
-			<InfoBanner
-				variant={totalScore < 24 ? "warning" : "success"}
-			>
-				<strong>MMSE Total: {totalScore}/30</strong> —{" "}
-				{interpretation === "normal" && "Normal cognition (24–30)"}
-				{interpretation === "mild_impairment" && "Mild impairment (18–23)"}
-				{interpretation === "moderate_impairment" && "Moderate impairment (10–17)"}
-				{interpretation === "severe_impairment" && "Severe impairment (< 10)"}
-				{totalScore < 24 && (
-					<>
-						{" — "}
-						<strong>
-							Cognitive &amp; Safety Pathway (Tier 2) triggered.
-						</strong>
-					</>
-				)}
+		<div className="space-y-5">
+			<InfoBanner variant="info">
+				<strong>Mini-Mental State Examination (MMSE)</strong> — 30-point
+				cognitive screen. Score each task as the client responds; subtotals
+				and the total update automatically.
 			</InfoBanner>
 
+			<FieldGroup
+				legend="1. Orientation"
+				description="Ask each question in order. 1 point per correct answer."
+				badge={`${orientationScore}/10`}
+			>
+				<ScoreItem label="What year is it?" value={s.orientation_time?.year} onChange={(v) => u("orientation_time", { ...s.orientation_time, year: v })} />
+				<ScoreItem label="What season is it?" value={s.orientation_time?.season} onChange={(v) => u("orientation_time", { ...s.orientation_time, season: v })} />
+				<ScoreItem label="What is today's date?" value={s.orientation_time?.date} onChange={(v) => u("orientation_time", { ...s.orientation_time, date: v })} />
+				<ScoreItem label="What day of the week is it?" value={s.orientation_time?.day} onChange={(v) => u("orientation_time", { ...s.orientation_time, day: v })} />
+				<ScoreItem label="What month is it?" value={s.orientation_time?.month} onChange={(v) => u("orientation_time", { ...s.orientation_time, month: v })} />
+				<ScoreItem label="What state are we in?" value={s.orientation_place?.state} onChange={(v) => u("orientation_place", { ...s.orientation_place, state: v })} />
+				<ScoreItem label="What county are we in?" value={s.orientation_place?.county} onChange={(v) => u("orientation_place", { ...s.orientation_place, county: v })} />
+				<ScoreItem label="What town or city are we in?" value={s.orientation_place?.town} onChange={(v) => u("orientation_place", { ...s.orientation_place, town: v })} />
+				<ScoreItem label="What building are we in?" value={s.orientation_place?.facility} onChange={(v) => u("orientation_place", { ...s.orientation_place, facility: v })} />
+				<ScoreItem label="What floor are we on?" value={s.orientation_place?.floor} onChange={(v) => u("orientation_place", { ...s.orientation_place, floor: v })} />
+			</FieldGroup>
+
+			<FieldGroup
+				legend="2. Registration"
+				description={
+					<>
+						Name three objects — <strong>apple, penny, table</strong> — and ask
+						the client to repeat them. 1 point per correct repetition.
+					</>
+				}
+				badge={`${registrationScore}/3`}
+			>
+				<ScoreItem label="Repeated “apple”" value={s.registration_word1} onChange={(v) => u("registration_word1", v)} />
+				<ScoreItem label="Repeated “penny”" value={s.registration_word2} onChange={(v) => u("registration_word2", v)} />
+				<ScoreItem label="Repeated “table”" value={s.registration_word3} onChange={(v) => u("registration_word3", v)} />
+			</FieldGroup>
+
+			<FieldGroup
+				legend="3. Attention &amp; calculation"
+				description="Use one method. Switching methods clears the other's answers."
+				badge={`${attentionScore}/5`}
+			>
+				<FieldRow label="Scoring method">
+					<SegmentedControl
+						ariaLabel="Attention scoring method"
+						value={attentionMethod}
+						onChange={switchAttentionMethod}
+						options={[
+							{ value: "serial7", label: "Serial 7s" },
+							{ value: "world", label: "Spell WORLD backwards" },
+						]}
+					/>
+				</FieldRow>
+				{attentionMethod === "serial7" ? (
+					<>
+						<ScoreItem label="100 − 7 = 93" value={s.serial7_1} onChange={(v) => u("serial7_1", v)} />
+						<ScoreItem label="93 − 7 = 86" value={s.serial7_2} onChange={(v) => u("serial7_2", v)} />
+						<ScoreItem label="86 − 7 = 79" value={s.serial7_3} onChange={(v) => u("serial7_3", v)} />
+						<ScoreItem label="79 − 7 = 72" value={s.serial7_4} onChange={(v) => u("serial7_4", v)} />
+						<ScoreItem label="72 − 7 = 65" value={s.serial7_5} onChange={(v) => u("serial7_5", v)} />
+					</>
+				) : (
+					<ScoreItem
+						label="Letters in the correct position (D-L-R-O-W)"
+						value={s.world_backward}
+						onChange={(v) => u("world_backward", v)}
+						max={5}
+					/>
+				)}
+			</FieldGroup>
+
+			<FieldGroup
+				legend="4. Recall"
+				description="Ask the client to recall the three words from Registration. 1 point per correct word."
+				badge={`${recallScore}/3`}
+			>
+				<ScoreItem label="Recalled “apple”" value={s.recall_word1} onChange={(v) => u("recall_word1", v)} />
+				<ScoreItem label="Recalled “penny”" value={s.recall_word2} onChange={(v) => u("recall_word2", v)} />
+				<ScoreItem label="Recalled “table”" value={s.recall_word3} onChange={(v) => u("recall_word3", v)} />
+			</FieldGroup>
+
+			<FieldGroup legend="5. Language" badge={`${languageScore}/8`}>
+				<ScoreItem label="Named a pen when shown one" value={s.name_pen} onChange={(v) => u("name_pen", v)} />
+				<ScoreItem label="Named a watch when shown one" value={s.name_watch} onChange={(v) => u("name_watch", v)} />
+				<ScoreItem label="Repeated “no ifs, ands, or buts”" value={s.repeat_phrase} onChange={(v) => u("repeat_phrase", v)} />
+				<ScoreItem
+					label="Followed the 3-step command"
+					hint="Take the paper in your right hand, fold it in half, place it on the floor — 1 point per step"
+					value={s.three_step_command}
+					onChange={(v) => u("three_step_command", v)}
+					max={3}
+				/>
+				<ScoreItem label="Read and obeyed “close your eyes”" value={s.read_obey} onChange={(v) => u("read_obey", v)} />
+				<ScoreItem label="Wrote a complete sentence" value={s.write_sentence} onChange={(v) => u("write_sentence", v)} />
+			</FieldGroup>
+
+			<FieldGroup
+				legend="6. Visuospatial"
+				description="Ask the client to copy two intersecting pentagons."
+				badge={`${visuospatialScore}/1`}
+			>
+				<ScoreItem label="Copied the pentagons" value={s.copy_pentagons} onChange={(v) => u("copy_pentagons", v)} />
+			</FieldGroup>
+
+			{hasAnswers ? (
+				<InfoBanner variant={totalScore < 24 ? "warning" : "success"}>
+					<strong>MMSE Total: {totalScore}/30</strong> —{" "}
+					{interpretation === "normal" && "Normal cognition (24–30)"}
+					{interpretation === "mild_impairment" && "Mild impairment (18–23)"}
+					{interpretation === "moderate_impairment" && "Moderate impairment (10–17)"}
+					{interpretation === "severe_impairment" && "Severe impairment (< 10)"}
+					{totalScore < 24 && (
+						<>
+							{" — "}
+							<strong>Cognitive &amp; Safety Pathway (Tier 2) triggered.</strong>
+						</>
+					)}
+				</InfoBanner>
+			) : (
+				<InfoBanner variant="info">
+					No items scored yet. The total and Tier 2 trigger are evaluated
+					once scoring begins.
+				</InfoBanner>
+			)}
+
 			<TextareaField
-				label="Clinician Notes"
+				label="Clinician notes"
 				value={s.notes}
 				onChange={(v) => u("notes", v)}
 				placeholder="Additional cognitive observations…"

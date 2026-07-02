@@ -211,7 +211,7 @@ export function LandingPage() {
 								Phone
 							</p>
 							<p className="text-2xl font-semibold text-white">
-								(402) 555-0000
+								(402) 235-8337
 							</p>
 						</div>
 						<div className="space-y-1">

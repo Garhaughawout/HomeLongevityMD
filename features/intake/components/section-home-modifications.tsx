@@ -9,11 +9,14 @@ import {
 	PRIORITY_COLORS,
 	CATEGORY_LABELS,
 } from "@/types/modifications";
-import { FieldGroup, TextareaField } from "./fields";
+import { FieldGroup, TextareaField, InfoBanner } from "./fields";
+import type { HomeFinding } from "@/features/intake/lib/findings";
 
 type Props = {
 	value: HomeModificationsData;
 	onChange: (v: HomeModificationsData) => void;
+	/** Issues flagged during assessment (HOME FAST hazards, Tier 2 findings) */
+	findings?: HomeFinding[];
 };
 
 let idCounter = 0;
@@ -22,9 +25,30 @@ function genId(): string {
 	return `mod-${Date.now()}-${idCounter}`;
 }
 
-export function SectionHomeModifications({ value, onChange }: Props) {
+export function SectionHomeModifications({ value, onChange, findings = [] }: Props) {
 	const [selectedType, setSelectedType] = useState("");
 	const [customMode, setCustomMode] = useState(false);
+
+	function findingIsAdded(f: HomeFinding): boolean {
+		return value.items.some((item) => item.triggered_by === f.triggered_by);
+	}
+
+	function addFromFinding(f: HomeFinding) {
+		if (findingIsAdded(f)) return;
+		const entry = f.suggested_type
+			? MODIFICATION_CATALOG_MAP[f.suggested_type]
+			: undefined;
+		const item: ModificationItem = {
+			id: genId(),
+			category: entry?.category ?? f.suggested_category,
+			modification_type: f.suggested_type ?? "custom",
+			description: entry?.label ?? "",
+			estimated_cost: entry?.default_cost ?? 0,
+			priority: "recommended",
+			triggered_by: f.triggered_by,
+		};
+		onChange({ ...value, items: [...value.items, item] });
+	}
 
 	function addItem(modType: string, overrides?: Partial<ModificationItem>) {
 		const catalogEntry = MODIFICATION_CATALOG_MAP[modType];
@@ -77,18 +101,65 @@ export function SectionHomeModifications({ value, onChange }: Props) {
 
 	return (
 		<div className="space-y-6">
-			<div
-				className="rounded-lg p-4 text-sm"
-				style={{
-					background: "var(--surface)",
-					border: "1px solid var(--border)",
-				}}
-			>
-				<p style={{ color: "var(--muted)" }}>
-					Record recommended home modifications based on assessment findings.
-					This data feeds future pricing models.
-				</p>
-			</div>
+			<InfoBanner variant="info">
+				<strong>Home modifications</strong> — record the recommended
+				modifications based on assessment findings. Adding from a finding
+				links the modification to its evidence, which feeds the pricing
+				model.
+			</InfoBanner>
+
+			{/* Findings from assessment */}
+			{findings.length > 0 && (
+				<FieldGroup
+					legend="Findings from assessment"
+					description="Issues flagged during HOME FAST and Tier 2 environmental review. Add the matching modification with one click — the trigger is recorded automatically."
+					badge={`${findings.length} found`}
+				>
+					{findings.map((f) => {
+						const added = findingIsAdded(f);
+						const suggestion = f.suggested_type
+							? MODIFICATION_CATALOG_MAP[f.suggested_type]
+							: undefined;
+						return (
+							<div
+								key={f.id}
+								className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3.5"
+							>
+								<div className="min-w-[14rem] flex-1">
+									<p className="text-[15px] leading-snug text-[color:var(--foreground)]">
+										{f.description}
+									</p>
+									<p className="mt-0.5 text-xs text-[color:var(--muted)]">
+										{f.area}
+										{" · "}
+										{f.source === "home_fast" ? "HOME FAST" : "Tier 2 environmental"}
+										{suggestion && (
+											<>
+												{" · suggests "}
+												{suggestion.label} (${suggestion.default_cost})
+											</>
+										)}
+									</p>
+								</div>
+								{added ? (
+									<span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-800">
+										Added
+									</span>
+								) : (
+									<button
+										type="button"
+										onClick={() => addFromFinding(f)}
+										className="shrink-0 rounded-lg px-4 py-2 text-sm font-medium text-white"
+										style={{ backgroundColor: "var(--accent)" }}
+									>
+										{suggestion ? "Add modification" : "Add as custom"}
+									</button>
+								)}
+							</div>
+						);
+					})}
+				</FieldGroup>
+			)}
 
 			{/* Add from catalog */}
 			<FieldGroup legend="Add Modification">

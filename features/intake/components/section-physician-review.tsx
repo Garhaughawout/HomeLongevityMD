@@ -1,7 +1,7 @@
 "use client";
 
 import type { PhysicianReviewData } from "@/types/intake";
-import { YesNoUnknownField, YesNoField, TextField, TextareaField, SelectField, FieldGroup } from "./fields";
+import { YesNoUnknownField, YesNoField, TextField, TextareaField, SelectField, FieldGroup, InfoBanner } from "./fields";
 
 type Props = {
 	value: PhysicianReviewData;
@@ -22,18 +22,12 @@ export function SectionPhysicianReview({ value, onChange }: Props) {
 		onChange(set(s, k, v));
 
 	return (
-		<div className="space-y-8">
-			<div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm">
-				<p className="text-[color:var(--muted)]">
-					<span className="font-medium text-[color:var(--foreground)]">
-						Physician Review — Tier 3
-					</span>{" "}
-					— Clinical synthesis of all assessment findings. The
-					physician&rsquo;s overall risk can only{" "}
-					<strong>elevate</strong> the computed risk category, never
-					reduce it.
-				</p>
-			</div>
+		<div className="space-y-5">
+			<InfoBanner variant="info">
+				<strong>Physician Review — Tier 3</strong> — Clinical synthesis of
+				all assessment findings. The physician&rsquo;s overall risk can only{" "}
+				<strong>elevate</strong> the computed risk category, never reduce it.
+			</InfoBanner>
 
 			<FieldGroup legend="Synthesis from All Tiers">
 				<SelectField
