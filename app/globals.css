@@ -111,4 +111,13 @@ a {
 			rgba(23, 48, 77, 0.02)
 		);
 	}
+
+	.font-display-serif {
+		font-family: Georgia, "Times New Roman", Times, serif;
+	}
+
+	.warm-panel {
+		background: #faf6ef;
+		border: 1px solid #eee5d2;
+	}
 }
