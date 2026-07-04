@@ -56,7 +56,7 @@ export const pageReference: ReadonlyArray<InternalDocEntry> = [
 		path: "/clients/[id]/intake",
 		access: "authenticated",
 		purpose:
-			"Multi-step intake wizard based on the OT HOME FAST + SAFER-HOME hybrid template. 7 clinical sections: Home Environment, Mobility & Function, ADLs & IADLs, Cognitive & Safety, Fall Risk, Caregiver Support, and Physician Review.",
+			"Multi-step intake wizard using open-license instruments per the Anchor Index v2 methodology: STEADI home safety checklist, ADLs & IADLs (Katz/Lawton), TUG, FRAIL scale, SLUMS cognitive screen, OT clinical judgment, triggered Tier 2 pathways, and Physician Review.",
 		notes: "8-step wizard (7 data sections + review/submit). Each section autosaves to JSONB via server action. Supports draft → submitted lifecycle with versioned revisions.",
 	},
 	{

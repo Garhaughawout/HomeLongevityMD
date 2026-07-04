@@ -4,11 +4,11 @@ import { useState, useTransition, useMemo } from "react";
 import type { ClientRow, ClientIntakeRow } from "@/types/supabase";
 import type {
 	ClinicalContextData,
-	HomeFastData,
+	SteadiData,
 	AdlIadlData,
 	TugTestData,
 	FrailScaleData,
-	MmseData,
+	SlumsData,
 	OtClinicalJudgmentData,
 	BergBalanceData,
 	Tier2CognitiveData,
@@ -20,11 +20,11 @@ import type { HomeModificationsData } from "@/types/modifications";
 import { saveSectionAction } from "@/features/intake/actions/save-section";
 import { WizardProgress, buildWizardSteps, type WizardStep } from "./wizard-progress";
 import { SectionClinicalContext } from "./section-clinical-context";
-import { SectionHomeFast } from "./section-home-fast";
+import { SectionSteadi } from "./section-steadi";
 import { SectionAdlIadl } from "./section-adl-iadl";
 import { SectionTugTest } from "./section-tug-test";
 import { SectionFrailScale } from "./section-frail-scale";
-import { SectionMmse, mmseHasAnswers } from "./section-mmse";
+import { SectionSlums, slumsBelowNormal } from "./section-slums";
 import { SectionOtClinicalJudgment } from "./section-ot-clinical-judgment";
 import { SectionBergBalance } from "./section-berg-balance";
 import { SectionTier2Cognitive } from "./section-tier2-cognitive";
@@ -55,11 +55,11 @@ function buildCompletedSections(intake: ClientIntakeRow | null): Set<string> {
 	if (!intake) return new Set();
 	const keys = [
 		"clinical_context",
-		"home_fast",
+		"steadi",
 		"adl_iadl",
 		"tug_test",
 		"frail_scale",
-		"mmse",
+		"slums",
 		"ot_clinical_judgment",
 		"berg_balance",
 		"tier2_cognitive",
@@ -93,8 +93,8 @@ export function IntakeWizard({ client, intake }: Props) {
 	const [clinicalContext, setClinicalContext] = useState<ClinicalContextData>(
 		(intake?.clinical_context as ClinicalContextData) ?? {}
 	);
-	const [homeFast, setHomeFast] = useState<HomeFastData>(
-		(intake?.home_fast as HomeFastData) ?? {}
+	const [steadi, setSteadi] = useState<SteadiData>(
+		(intake?.steadi as SteadiData) ?? {}
 	);
 	const [adlIadl, setAdlIadl] = useState<AdlIadlData>(
 		(intake?.adl_iadl as AdlIadlData) ??
@@ -107,8 +107,8 @@ export function IntakeWizard({ client, intake }: Props) {
 	const [frailScale, setFrailScale] = useState<FrailScaleData>(
 		(intake?.frail_scale as FrailScaleData) ?? {}
 	);
-	const [mmse, setMmse] = useState<MmseData>(
-		(intake?.mmse as MmseData) ?? {}
+	const [slums, setSlums] = useState<SlumsData>(
+		(intake?.slums as SlumsData) ?? {}
 	);
 	const [otJudgment, setOtJudgment] = useState<OtClinicalJudgmentData>(
 		(intake?.ot_clinical_judgment as OtClinicalJudgmentData) ?? {}
@@ -144,10 +144,10 @@ export function IntakeWizard({ client, intake }: Props) {
 			triggers.add("berg_balance");
 		}
 
-		// MMSE < 24 → Cognitive Pathway. Requires actual item answers so a
-		// stored total_score of 0 from an untouched section can't trigger it.
-		const mmseTotal = mmse.total_score;
-		if (mmseHasAnswers(mmse) && mmseTotal !== undefined && mmseTotal < 24) {
+		// SLUMS below the normal (education-adjusted) range → Cognitive
+		// Pathway. Requires actual item answers so a stored total_score of 0
+		// from an untouched section can't trigger it.
+		if (slumsBelowNormal(slums)) {
 			triggers.add("tier2_cognitive");
 		}
 
@@ -157,14 +157,14 @@ export function IntakeWizard({ client, intake }: Props) {
 			triggers.add("tier2_frailty");
 		}
 
-		// HOME FAST high hazards (>= 7) → Environmental Pathway
-		const hazardCount = homeFast.hazard_count ?? 0;
-		if (hazardCount >= 7) {
+		// STEADI high hazards (>= 4 of 16 items) → Environmental Pathway
+		const hazardCount = steadi.hazard_count ?? 0;
+		if (hazardCount >= 4) {
 			triggers.add("tier2_environmental");
 		}
 
 		return triggers;
-	}, [tugTest, mmse, frailScale, homeFast]);
+	}, [tugTest, slums, frailScale, steadi]);
 
 	// ── Build dynamic step list ────────────────────────────────────────────────
 
@@ -173,8 +173,8 @@ export function IntakeWizard({ client, intake }: Props) {
 	// ── Issues flagged during assessment (drives modification suggestions) ─────
 
 	const homeFindings = useMemo(
-		() => extractHomeFindings(homeFast, tier2Environmental),
-		[homeFast, tier2Environmental]
+		() => extractHomeFindings(steadi, tier2Environmental),
+		[steadi, tier2Environmental]
 	);
 
 	// ── Current section key + data ──────────────────────────────────────────────
@@ -191,16 +191,16 @@ export function IntakeWizard({ client, intake }: Props) {
 		switch (step.key) {
 			case "clinical_context":
 				return { key: step.key, data: clinicalContext };
-			case "home_fast":
-				return { key: step.key, data: homeFast };
+			case "steadi":
+				return { key: step.key, data: steadi };
 			case "adl_iadl":
 				return { key: step.key, data: adlIadl };
 			case "tug_test":
 				return { key: step.key, data: tugTest };
 			case "frail_scale":
 				return { key: step.key, data: frailScale };
-			case "mmse":
-				return { key: step.key, data: mmse };
+			case "slums":
+				return { key: step.key, data: slums };
 			case "ot_clinical_judgment":
 				return { key: step.key, data: otJudgment };
 			case "berg_balance":
@@ -349,10 +349,10 @@ export function IntakeWizard({ client, intake }: Props) {
 							onChange={setClinicalContext}
 						/>
 					)}
-					{steps[currentStep]?.key === "home_fast" && (
-						<SectionHomeFast
-							value={homeFast}
-							onChange={setHomeFast}
+					{steps[currentStep]?.key === "steadi" && (
+						<SectionSteadi
+							value={steadi}
+							onChange={setSteadi}
 						/>
 					)}
 					{steps[currentStep]?.key === "adl_iadl" && (
@@ -373,10 +373,10 @@ export function IntakeWizard({ client, intake }: Props) {
 							onChange={setFrailScale}
 						/>
 					)}
-					{steps[currentStep]?.key === "mmse" && (
-						<SectionMmse
-							value={mmse}
-							onChange={setMmse}
+					{steps[currentStep]?.key === "slums" && (
+						<SectionSlums
+							value={slums}
+							onChange={setSlums}
 						/>
 					)}
 					{steps[currentStep]?.key === "ot_clinical_judgment" && (
@@ -428,11 +428,11 @@ export function IntakeWizard({ client, intake }: Props) {
 							intakeId={intakeId}
 							sections={{
 								clinical_context: clinicalContext,
-								home_fast: homeFast,
+								steadi: steadi,
 								adl_iadl: adlIadl,
 								tug_test: tugTest,
 								frail_scale: frailScale,
-								mmse: mmse,
+								slums: slums,
 								ot_clinical_judgment: otJudgment,
 								berg_balance: bergBalance,
 								tier2_cognitive: tier2Cognitive,

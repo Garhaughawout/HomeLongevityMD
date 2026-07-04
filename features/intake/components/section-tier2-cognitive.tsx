@@ -26,7 +26,7 @@ export function SectionTier2Cognitive({ value, onChange }: Props) {
 			<div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
 				<strong>Triggered Assessment — Cognitive &amp; Safety Pathway</strong>
 				<br />
-				Triggered by MMSE score &lt; 24. Complete the following assessments
+				Triggered by a SLUMS score below the normal range. Complete the following assessments
 				to evaluate cognitive functional safety.
 			</div>
 

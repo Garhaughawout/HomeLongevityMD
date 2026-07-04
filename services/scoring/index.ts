@@ -1,12 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Risk Scoring Engine — version 2.0
+// Risk Scoring Engine — version 2.1
 //
 // Converts a submitted ClientIntakeRow into domain scores (0–100 each) and
 // an aggregate risk score + category.  Higher scores = greater risk.
 //
+// v2.1 (July 2026): STEADI replaces HOME FAST and SLUMS replaces the MMSE,
+// per the Anchor Index v2 methodology (open-license instruments only).
+//
 // Domain weights (sum = 1.0):
-//   home_fast 20 % | adl_iadl 20 % | tug_test 15 %
-//   frail_scale 15 % | mmse 20 % | ot_clinical_judgment 10 %
+//   steadi 20 % | adl_iadl 20 % | tug_test 15 %
+//   frail_scale 15 % | slums 20 % | ot_clinical_judgment 10 %
 //
 // Physician review (physician_review.physician_overall_risk) can only
 // ELEVATE the computed category — it is never used to reduce it.
@@ -14,18 +17,18 @@
 
 import type { ClientIntakeRow } from "@/types/supabase";
 import type {
-	HomeFastData,
+	SteadiData,
 	AdlIadlData,
 	TugTestData,
 	FrailScaleData,
-	MmseData,
+	SlumsData,
 	OtClinicalJudgmentData,
 	PhysicianReviewData,
 } from "@/types/intake";
 
 // ── Public constants ──────────────────────────────────────────────────────────
 
-export const SCORING_VERSION = "2.0";
+export const SCORING_VERSION = "2.1";
 
 export type RiskCategory =
 	| "low"
@@ -35,11 +38,11 @@ export type RiskCategory =
 	| "unsafe_independent";
 
 export interface ScoringResult {
-	home_fast_score: number;
+	steadi_score: number;
 	adl_iadl_score: number;
 	tug_test_score: number;
 	frail_scale_score: number;
-	mmse_score: number;
+	slums_score: number;
 	ot_clinical_judgment_score: number;
 	aggregate_score: number;
 	risk_category: RiskCategory;
@@ -62,21 +65,20 @@ const CATEGORY_ORDER: RiskCategory[] = [
 
 // ── Domain scorers ────────────────────────────────────────────────────────────
 
-function scoreHomeFast(d: HomeFastData | null | undefined): number {
+function scoreSteadi(d: SteadiData | null | undefined): number {
 	if (!d || !d.items || d.items.length === 0) return 50;
 
-	// Questions are phrased hazard-positively ("Are grab bars absent…?"),
-	// so "yes" flags the hazard. Recompute from raw items rather than
-	// trusting a stored hazard_count, which older drafts saved inverted.
+	// Every "yes" answer on the STEADI checklist flags a hazard. Bands are
+	// proportional to the 16-item checklist length.
 	const hazardCount = d.items.filter(
 		(item) => item.response === "yes"
 	).length;
 
 	if (hazardCount === 0) return 0;
-	if (hazardCount <= 3) return 20;
-	if (hazardCount <= 6) return 40;
-	if (hazardCount <= 10) return 60;
-	if (hazardCount <= 15) return 80;
+	if (hazardCount <= 2) return 20;
+	if (hazardCount <= 4) return 40;
+	if (hazardCount <= 6) return 60;
+	if (hazardCount <= 9) return 80;
 	return 100;
 }
 
@@ -180,29 +182,22 @@ function scoreFrailScale(d: FrailScaleData | null | undefined): number {
 	return map[total] ?? 50;
 }
 
-function scoreMmse(d: MmseData | null | undefined): number {
+function scoreSlums(d: SlumsData | null | undefined): number {
 	if (!d || Object.keys(d).length === 0) return 50;
 
-	let total = d.total_score;
-
-	// Compute from subscores if total not set
-	if (total === undefined) {
-		const orient =
-			(d.orientation_score ?? 0) +
-			(d.registration_score ?? 0) +
-			(d.attention_score ?? 0) +
-			(d.recall_score ?? 0) +
-			(d.language_score ?? 0) +
-			(d.visuospatial_score ?? 0);
-		total = orient;
-	}
-
+	const total = d.total_score;
 	if (total === undefined) return 50;
 
-	if (total >= 30) return 0;
-	if (total >= 24) return 15;
-	if (total >= 18) return 40;
-	if (total >= 10) return 70;
+	// Education-adjusted bands (SLUMS):
+	//   HS+  : 27–30 normal, 21–26 mild NCD, ≤ 20 dementia
+	//   < HS : 25–30 normal, 20–24 mild NCD, ≤ 19 dementia
+	const highSchool = d.education !== "less_than_high_school";
+	const normalFloor = highSchool ? 27 : 25;
+	const mncdFloor = highSchool ? 21 : 20;
+
+	if (total >= normalFloor) return total >= 29 ? 0 : 10;
+	if (total >= mncdFloor) return 45;
+	if (total >= 10) return 80;
 	return 95;
 }
 
@@ -256,11 +251,11 @@ function deriveCategory(
 // ── Public entry point ────────────────────────────────────────────────────────
 
 export function scoreIntake(intake: ClientIntakeRow): ScoringResult {
-	const hf = scoreHomeFast(intake.home_fast as HomeFastData | null);
+	const steadi = scoreSteadi(intake.steadi as SteadiData | null);
 	const adl = scoreAdlIadl(intake.adl_iadl as AdlIadlData | null);
 	const tug = scoreTugTest(intake.tug_test as TugTestData | null);
 	const frail = scoreFrailScale(intake.frail_scale as FrailScaleData | null);
-	const mmse = scoreMmse(intake.mmse as MmseData | null);
+	const slums = scoreSlums(intake.slums as SlumsData | null);
 	const ot = scoreOtJudgment(
 		intake.ot_clinical_judgment as OtClinicalJudgmentData | null
 	);
@@ -269,17 +264,17 @@ export function scoreIntake(intake: ClientIntakeRow): ScoringResult {
 	const physicianOverride = physician?.physician_overall_risk ?? null;
 
 	const aggregate = clamp(
-		hf * 0.2 + adl * 0.2 + tug * 0.15 + frail * 0.15 + mmse * 0.2 + ot * 0.1
+		steadi * 0.2 + adl * 0.2 + tug * 0.15 + frail * 0.15 + slums * 0.2 + ot * 0.1
 	);
 
 	const risk_category = deriveCategory(aggregate, physicianOverride);
 
 	return {
-		home_fast_score: hf,
+		steadi_score: steadi,
 		adl_iadl_score: adl,
 		tug_test_score: tug,
 		frail_scale_score: frail,
-		mmse_score: mmse,
+		slums_score: slums,
 		ot_clinical_judgment_score: ot,
 		aggregate_score: aggregate,
 		risk_category,
@@ -287,11 +282,11 @@ export function scoreIntake(intake: ClientIntakeRow): ScoringResult {
 			scoring_version: SCORING_VERSION,
 			physician_override: physicianOverride,
 			domain_weights: {
-				home_fast: 0.2,
+				steadi: 0.2,
 				adl_iadl: 0.2,
 				tug_test: 0.15,
 				frail_scale: 0.15,
-				mmse: 0.2,
+				slums: 0.2,
 				ot_clinical_judgment: 0.1,
 			},
 		},

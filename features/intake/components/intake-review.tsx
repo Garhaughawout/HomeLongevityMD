@@ -16,11 +16,11 @@ type Props = {
 
 const SECTION_KEYS = [
 	"clinical_context",
-	"home_fast",
+	"steadi",
 	"adl_iadl",
 	"tug_test",
 	"frail_scale",
-	"mmse",
+	"slums",
 	"ot_clinical_judgment",
 	"berg_balance",
 	"tier2_cognitive",
@@ -46,7 +46,7 @@ export function IntakeReview({
 	const [error, setError] = useState<string | null>(null);
 
 	const findings = extractHomeFindings(
-		sections.home_fast,
+		sections.steadi,
 		sections.tier2_environmental
 	);
 	const modifications = sections.home_modifications;
@@ -144,8 +144,8 @@ export function IntakeReview({
 										<p className="mt-0.5 text-xs text-[color:var(--muted)]">
 											{f.area}
 											{" · "}
-											{f.source === "home_fast"
-												? "HOME FAST"
+											{f.source === "steadi"
+												? "STEADI"
 												: "Tier 2 environmental"}
 										</p>
 									</div>

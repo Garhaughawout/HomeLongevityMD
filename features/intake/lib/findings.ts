@@ -1,10 +1,10 @@
-import type { HomeFastData, Tier2EnvironmentalData } from "@/types/intake";
+import type { SteadiData, Tier2EnvironmentalData } from "@/types/intake";
 import type { ModificationCategory } from "@/types/modifications";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Home findings — the list of concrete issues identified during assessment.
 //
-// Aggregates flagged HOME FAST hazards and Tier 2 environmental findings into
+// Aggregates flagged STEADI hazards and Tier 2 environmental findings into
 // one structure. Shown on the Home Modifications step (with one-click add,
 // prefilling triggered_by) and on the Review step. The triggered_by linkage
 // between finding and modification is what makes quotes traceable to
@@ -12,10 +12,10 @@ import type { ModificationCategory } from "@/types/modifications";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type HomeFinding = {
-	/** Stable id, e.g. "home_fast:bathroom_1" */
+	/** Stable id, e.g. "steadi:bath_support" */
 	id: string;
-	source: "home_fast" | "tier2_environmental";
-	/** Area of the home, e.g. "Bathroom", "Stairs & Steps", or a room name */
+	source: "steadi" | "tier2_environmental";
+	/** Area of the home, e.g. "Bathrooms", "Stairs & Steps", or a room name */
 	area: string;
 	/** The issue, as flagged during assessment */
 	description: string;
@@ -27,44 +27,29 @@ export type HomeFinding = {
 	triggered_by: string;
 };
 
-// HOME FAST item id → catalog modification that typically remediates it.
-// Items without an entry (behavioral/educational findings) add as custom.
-const HOME_FAST_SUGGESTIONS: Record<string, string> = {
-	flooring_1: "remove_throw_rugs",
-	flooring_2: "secure_loose_carpets",
-	flooring_3: "doorway_threshold_fix",
-	flooring_4: "non_slip_flooring",
-	lighting_1: "lighting_upgrade",
-	lighting_2: "lighting_upgrade",
-	lighting_3: "lighting_upgrade",
-	bathroom_1: "grab_bars_shower",
-	bathroom_2: "non_slip_flooring",
-	bathroom_3: "raised_toilet",
-	bathroom_4: "shower_bench",
-	transfers_1: "hospital_bed",
-	stairs_1: "second_handrail",
-	stairs_2: "contrasting_edging",
-	stairs_3: "handrails_outdoor",
-	access_1: "threshold_ramp",
-	access_2: "door_widening",
-	access_3: "path_repair",
-	kitchen_1: "pull_out_shelves",
-	kitchen_2: "smart_home_safety",
-	emergency_1: "smart_home_safety",
-	emergency_2: "smart_home_safety",
-	emergency_4: "emergency_response_system",
+// STEADI item id → catalog modification that typically remediates it.
+// Items without an entry (behavioral/habit findings) add as custom.
+const STEADI_SUGGESTIONS: Record<string, string> = {
+	floors_throw_rugs: "remove_throw_rugs",
+	floors_cords: "secure_loose_carpets",
+	stairs_broken: "step_repair",
+	stairs_no_light: "lighting_upgrade",
+	stairs_one_switch: "lighting_upgrade",
+	stairs_handrails: "second_handrail",
+	stairs_carpet: "secure_loose_carpets",
+	kitchen_high_shelves: "pull_out_shelves",
+	bedroom_light_reach: "lighting_upgrade",
+	bedroom_dark_path: "lighting_upgrade",
+	bath_slippery: "non_slip_flooring",
+	bath_support: "grab_bars_shower",
 };
 
-const HOME_FAST_AREA_CATEGORY: Record<string, ModificationCategory> = {
-	"Flooring": "general",
-	"Lighting": "hallway",
-	"Bathroom": "bathroom",
-	"Transfers & Mobility": "bedroom",
+const STEADI_AREA_CATEGORY: Record<string, ModificationCategory> = {
+	"Floors": "general",
 	"Stairs & Steps": "stairs",
-	"Accessibility": "entrance",
-	"Kitchen Safety": "kitchen",
-	"Emergency & Egress": "general",
-	"Footwear & Pets": "general",
+	"Kitchen": "kitchen",
+	"Bedrooms": "bedroom",
+	"Bathrooms": "bathroom",
 };
 
 function categoryFromRoomName(name: string): ModificationCategory {
@@ -80,23 +65,22 @@ function categoryFromRoomName(name: string): ModificationCategory {
 }
 
 export function extractHomeFindings(
-	homeFast: HomeFastData | null | undefined,
+	steadi: SteadiData | null | undefined,
 	tier2Env: Tier2EnvironmentalData | null | undefined
 ): HomeFinding[] {
 	const findings: HomeFinding[] = [];
 
-	// HOME FAST — every "yes" answer flags a hazard (questions are phrased
-	// hazard-positively: "Are grab bars absent…?")
-	for (const item of homeFast?.items ?? []) {
+	// STEADI — every "yes" answer flags a hazard
+	for (const item of steadi?.items ?? []) {
 		if (item.response !== "yes") continue;
 		findings.push({
-			id: `home_fast:${item.id}`,
-			source: "home_fast",
+			id: `steadi:${item.id}`,
+			source: "steadi",
 			area: item.section,
 			description: item.question,
-			suggested_type: HOME_FAST_SUGGESTIONS[item.id],
-			suggested_category: HOME_FAST_AREA_CATEGORY[item.section] ?? "general",
-			triggered_by: `HOME FAST — ${item.section}: ${item.question}`,
+			suggested_type: STEADI_SUGGESTIONS[item.id],
+			suggested_category: STEADI_AREA_CATEGORY[item.section] ?? "general",
+			triggered_by: `STEADI — ${item.section}: ${item.question}`,
 		});
 	}
 

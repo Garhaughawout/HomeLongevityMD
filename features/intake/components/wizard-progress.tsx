@@ -17,11 +17,11 @@ export interface WizardStep {
 // Base steps (always shown)
 const BASE_STEPS: WizardStep[] = [
 	{ key: "clinical_context", label: INTAKE_SECTION_LABELS.clinical_context, tier: "tier0" },
-	{ key: "home_fast", label: INTAKE_SECTION_LABELS.home_fast, tier: "tier1" },
+	{ key: "steadi", label: INTAKE_SECTION_LABELS.steadi, tier: "tier1" },
 	{ key: "adl_iadl", label: INTAKE_SECTION_LABELS.adl_iadl, tier: "tier1" },
 	{ key: "tug_test", label: INTAKE_SECTION_LABELS.tug_test, tier: "tier1" },
 	{ key: "frail_scale", label: INTAKE_SECTION_LABELS.frail_scale, tier: "tier1" },
-	{ key: "mmse", label: INTAKE_SECTION_LABELS.mmse, tier: "tier1" },
+	{ key: "slums", label: INTAKE_SECTION_LABELS.slums, tier: "tier1" },
 	{ key: "ot_clinical_judgment", label: INTAKE_SECTION_LABELS.ot_clinical_judgment, tier: "tier1_5" },
 	{ key: "physician_review", label: INTAKE_SECTION_LABELS.physician_review, tier: "tier3" },
 	{ key: "home_modifications", label: INTAKE_SECTION_LABELS.home_modifications, tier: "tier3_modifications" },
@@ -31,9 +31,9 @@ const BASE_STEPS: WizardStep[] = [
 // Conditional Tier 2 steps (inserted before physician_review when triggered)
 const TIER2_STEPS: WizardStep[] = [
 	{ key: "berg_balance", label: INTAKE_SECTION_LABELS.berg_balance, tier: "tier2", conditional: true, triggerLabel: "Triggered by TUG ≥ 12s" },
-	{ key: "tier2_cognitive", label: INTAKE_SECTION_LABELS.tier2_cognitive, tier: "tier2", conditional: true, triggerLabel: "Triggered by MMSE < 24" },
+	{ key: "tier2_cognitive", label: INTAKE_SECTION_LABELS.tier2_cognitive, tier: "tier2", conditional: true, triggerLabel: "Triggered by SLUMS below normal" },
 	{ key: "tier2_frailty", label: INTAKE_SECTION_LABELS.tier2_frailty, tier: "tier2", conditional: true, triggerLabel: "Triggered by FRAIL ≥ 3" },
-	{ key: "tier2_environmental", label: INTAKE_SECTION_LABELS.tier2_environmental, tier: "tier2", conditional: true, triggerLabel: "Triggered by HOME FAST hazards" },
+	{ key: "tier2_environmental", label: INTAKE_SECTION_LABELS.tier2_environmental, tier: "tier2", conditional: true, triggerLabel: "Triggered by STEADI hazards" },
 ];
 
 // ── Helper: build dynamic step list ───────────────────────────────────────────

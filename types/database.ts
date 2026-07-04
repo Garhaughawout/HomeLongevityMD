@@ -96,6 +96,8 @@ export type Database = {
 					clinical_context: Json | null;
 					home_fast: Json | null;
 					adl_iadl: Json | null;
+					slums: Json | null;
+					steadi: Json | null;
 					tug_test: Json | null;
 					frail_scale: Json | null;
 					mmse: Json | null;
@@ -137,6 +139,8 @@ export type Database = {
 					clinical_context?: Json | null;
 					home_fast?: Json | null;
 					adl_iadl?: Json | null;
+					slums?: Json | null;
+					steadi?: Json | null;
 					tug_test?: Json | null;
 					frail_scale?: Json | null;
 					mmse?: Json | null;
@@ -178,6 +182,8 @@ export type Database = {
 					clinical_context?: Json | null;
 					home_fast?: Json | null;
 					adl_iadl?: Json | null;
+					slums?: Json | null;
+					steadi?: Json | null;
 					tug_test?: Json | null;
 					frail_scale?: Json | null;
 					mmse?: Json | null;
@@ -409,6 +415,8 @@ export type Database = {
 					// New v2.0 score columns
 					home_fast_score: number | null;
 					adl_iadl_score: number | null;
+					slums_score: number | null;
+					steadi_score: number | null;
 					tug_test_score: number | null;
 					frail_scale_score: number | null;
 					mmse_score: number | null;
@@ -437,6 +445,8 @@ export type Database = {
 					// New v2.0 score columns
 					home_fast_score?: number | null;
 					adl_iadl_score?: number | null;
+					slums_score?: number | null;
+					steadi_score?: number | null;
 					tug_test_score?: number | null;
 					frail_scale_score?: number | null;
 					mmse_score?: number | null;
@@ -465,6 +475,8 @@ export type Database = {
 					// New v2.0 score columns
 					home_fast_score?: number | null;
 					adl_iadl_score?: number | null;
+					slums_score?: number | null;
+					steadi_score?: number | null;
 					tug_test_score?: number | null;
 					frail_scale_score?: number | null;
 					mmse_score?: number | null;

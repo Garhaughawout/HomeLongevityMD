@@ -5,7 +5,7 @@ import type { HomeModificationsData } from "@/types/modifications";
 // These interfaces type the JSONB columns on the client_intake table.
 // Based on the FMII Model — a 3-tier adaptive assessment workflow:
 //   Tier 0  — Clinical Context (demographics, medical snapshot, occupational profile)
-//   Tier 1  — Universal Baseline Screening (HOME FAST, ADL/IADL, TUG, FRAIL, MMSE)
+//   Tier 1  — Universal Baseline Screening (STEADI, ADL/IADL, TUG, FRAIL, SLUMS)
 //   Tier 1.5 — OT Clinical Judgment (risk adjustment)
 //   Tier 2  — Triggered Adaptive Assessments (Berg Balance, Cognitive/Safety,
 //             Frailty/Medical, Environmental Hazard pathways)
@@ -103,12 +103,12 @@ export interface ClinicalContextData {
 
 // ── Tier 1: Universal Baseline Screening ─────────────────────────────────────
 
-// ── 1. HOME FAST (Home Safety) ──────────────────────────────────────────────
+// ── 1. STEADI Home Safety Checklist ──────────────────────────────────────────
 
 /**
- * Single HOME FAST item — one YES/NO/N/A question within a section.
+ * Single STEADI checklist item — one YES/NO/N/A question within a room.
  */
-export interface HomeFastItem {
+export interface SteadiItem {
 	id: string;
 	section: string;
 	question: string;
@@ -116,15 +116,16 @@ export interface HomeFastItem {
 }
 
 /**
- * HOME FAST — Home Safety Screening.
+ * CDC STEADI "Check for Safety" home fall-hazard checklist (public domain).
  *
- * Structured as an array of items grouped by section.  Each "no" answer
- * counts as a hazard.  The total hazard count drives escalation to the
- * Tier 2 Environmental Hazard pathway.
+ * Replaced HOME FAST (commercially licensed) per the Anchor Index v2
+ * methodology, July 2026. Structured as an array of items grouped by room.
+ * Each "yes" answer flags a hazard; the total hazard count drives escalation
+ * to the Tier 2 Environmental Hazard pathway.
  */
-export interface HomeFastData {
-	items?: HomeFastItem[];
-	/** Count of "no" answers across all items */
+export interface SteadiData {
+	items?: SteadiItem[];
+	/** Count of "yes" (hazard) answers across all items */
 	hazard_count?: number;
 	notes?: string;
 }
@@ -245,73 +246,65 @@ export interface FrailScaleData {
 	notes?: string;
 }
 
-// ── 5. MMSE (Mini-Mental Status Exam) ─────────────────────────────────────────
+// ── 5. SLUMS (Saint Louis University Mental Status) ─────────────────────
 
 /**
- * Mini-Mental Status Examination.
+ * SLUMS — Saint Louis University Mental Status examination.
  *
- * 30-point cognitive screening test across 6 domains.
- * 24–30 = normal, 18–23 = mild, 10–17 = moderate, < 10 = severe.
+ * Replaced the MMSE (exclusively licensed to PAR with per-use royalties)
+ * per the Anchor Index v2 methodology, July 2026. 30-point cognitive screen,
+ * freely published by Saint Louis University.
+ *
+ * Interpretation is education-adjusted:
+ *   High-school education:  27–30 normal, 21–26 mild NCD, ≤ 20 dementia
+ *   Less than high school:  25–30 normal, 20–24 mild NCD, ≤ 19 dementia
  */
-export interface MmseData {
-	// ── 1. Orientation (10 points) ──
-	orientation_time?: {
-		year?: number; // 1 pt
-		season?: number; // 1 pt
-		date?: number; // 1 pt
-		day?: number; // 1 pt
-		month?: number; // 1 pt
-	}; // max 5
-	orientation_place?: {
-		state?: number; // 1 pt
-		county?: number; // 1 pt
-		town?: number; // 1 pt
-		facility?: number; // 1 pt
-		floor?: number; // 1 pt
-	}; // max 5
-	orientation_score?: number; // max 10
+export interface SlumsData {
+	/** Education level — determines interpretation bands */
+	education?: "high_school_or_more" | "less_than_high_school";
 
-	// ── 2. Registration (3 points) ──
-	registration_word1?: number; // 1 pt for repeating "apple"
-	registration_word2?: number; // 1 pt for repeating "penny"
-	registration_word3?: number; // 1 pt for repeating "table"
-	registration_score?: number; // max 3
+	// ── Orientation (3 points) ──
+	day_of_week?: number; // 1 pt
+	year?: number; // 1 pt
+	state?: number; // 1 pt
 
-	// ── 3. Attention & Calculation (5 points) ──
-	// Serial 7s: 93, 86, 79, 72, 65 — 1 pt each
-	serial7_1?: number;
-	serial7_2?: number;
-	serial7_3?: number;
-	serial7_4?: number;
-	serial7_5?: number;
-	// Alternative: spell WORLD backwards (5 pts)
-	world_backward?: number; // max 5
-	attention_score?: number; // max 5
+	// ── Calculation (3 points) — $100 minus $3 apples and $20 tricycle ──
+	math_spent?: number; // 1 pt — "How much did you spend?"
+	math_left?: number; // 2 pts (0 or 2) — "How much do you have left?"
 
-	// ── 4. Recall (3 points) ──
-	recall_word1?: number; // 1 pt for recalling "apple"
-	recall_word2?: number; // 1 pt for recalling "penny"
-	recall_word3?: number; // 1 pt for recalling "table"
-	recall_score?: number; // max 3
+	// ── Animal naming (3 points) — animals named in one minute ──
+	/** 0 = none, 1 = 1–4 animals, 2 = 5–9, 3 = 10+ */
+	animal_score?: number;
 
-	// ── 5. Language (8 points) ──
-	name_pen?: number; // 1 pt
-	name_watch?: number; // 1 pt
-	repeat_phrase?: number; // 1 pt for "no ifs ands or buts"
-	three_step_command?: number; // 3 pts (1 per step)
-	read_obey?: number; // 1 pt for "close your eyes"
-	write_sentence?: number; // 1 pt
-	language_score?: number; // max 8
+	// ── Five-object recall (5 points) — apple, pen, tie, house, car ──
+	recall_apple?: number; // 1 pt
+	recall_pen?: number; // 1 pt
+	recall_tie?: number; // 1 pt
+	recall_house?: number; // 1 pt
+	recall_car?: number; // 1 pt
 
-	// ── 6. Visuospatial (1 point) ──
-	copy_pentagons?: number; // 1 pt
-	visuospatial_score?: number; // max 1
+	// ── Digit span backward (2 points) ──
+	digits_649?: number; // 1 pt
+	digits_8537?: number; // 1 pt
+
+	// ── Clock drawing (4 points) — "ten minutes to eleven o'clock" ──
+	clock_hour_markers?: number; // 2 pts (0 or 2)
+	clock_time_correct?: number; // 2 pts (0 or 2)
+
+	// ── Figure recognition (2 points) ──
+	x_in_triangle?: number; // 1 pt
+	largest_figure?: number; // 1 pt
+
+	// ── Story recall (8 points) — Jill the stockbroker story ──
+	story_name?: number; // 2 pts (0 or 2)
+	story_occupation?: number; // 2 pts (0 or 2)
+	story_work_return?: number; // 2 pts (0 or 2)
+	story_state?: number; // 2 pts (0 or 2)
 
 	// ── Total ──
 	/** Max 30 */
 	total_score?: number;
-	interpretation?: "normal" | "mild_impairment" | "moderate_impairment" | "severe_impairment";
-	// 24–30 = normal, 18–23 = mild, 10–17 = moderate, < 10 = severe
+	interpretation?: "normal" | "mild_neurocognitive_disorder" | "dementia";
 
 	notes?: string;
 }
@@ -541,19 +534,19 @@ export interface PhysicianReviewData {
 /** All intake section data, matching client_intake table JSONB columns */
 export interface ClientIntakeSections {
 	clinical_context: ClinicalContextData | null;
-	home_fast: HomeFastData | null;
+	steadi: SteadiData | null;
 	adl_iadl: AdlIadlData | null;
 	tug_test: TugTestData | null;
 	frail_scale: FrailScaleData | null;
-	mmse: MmseData | null;
+	slums: SlumsData | null;
 	ot_clinical_judgment: OtClinicalJudgmentData | null;
 	/** Conditional — triggered when TUG ≥ 12 s */
 	berg_balance: BergBalanceData | null;
-	/** Conditional — triggered when MMSE < 24 */
+	/** Conditional — triggered when SLUMS is below the normal range */
 	tier2_cognitive: Tier2CognitiveData | null;
 	/** Conditional — triggered when FRAIL ≥ 1 */
 	tier2_frailty: Tier2FrailtyData | null;
-	/** Conditional — triggered when HOME FAST hazard count exceeds threshold */
+	/** Conditional — triggered when STEADI hazard count exceeds threshold */
 	tier2_environmental: Tier2EnvironmentalData | null;
 	physician_review: PhysicianReviewData | null;
 	/** Post-assessment modification recommendations */
@@ -563,11 +556,11 @@ export interface ClientIntakeSections {
 /** Union of all intake section data types */
 export type IntakeSectionData =
 	| ClinicalContextData
-	| HomeFastData
+	| SteadiData
 	| AdlIadlData
 	| TugTestData
 	| FrailScaleData
-	| MmseData
+	| SlumsData
 	| OtClinicalJudgmentData
 	| BergBalanceData
 	| Tier2CognitiveData

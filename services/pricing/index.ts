@@ -47,7 +47,7 @@ export function suggestServices(assessment: RiskAssessmentRow): string[] {
 		"Local resource & referral guide",
 	]);
 
-	if ((assessment.home_fast_score ?? 0) >= 40)
+	if ((assessment.steadi_score ?? 0) >= 40)
 		services.add("Home safety assessment & modification recommendations");
 
 	if ((assessment.tug_test_score ?? 0) >= 40) {
@@ -61,7 +61,7 @@ export function suggestServices(assessment: RiskAssessmentRow): string[] {
 		services.add("Nutrition & meal planning recommendations");
 	}
 
-	if ((assessment.mmse_score ?? 0) >= 40)
+	if ((assessment.slums_score ?? 0) >= 40)
 		services.add("Cognitive health strategies");
 
 	if ((assessment.frail_scale_score ?? 0) >= 40)
