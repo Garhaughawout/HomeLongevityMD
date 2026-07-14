@@ -26,7 +26,7 @@ export function SectionTier2Environmental({ value, onChange }: Props) {
 			<div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
 				<strong>Triggered Assessment — Environmental Hazard Pathway</strong>
 				<br />
-				Triggered by a high STEADI hazard count. Complete the following
+				Triggered by a high HSSAT hazard count. Complete the following
 				detailed room-by-room analysis and accessibility evaluation.
 			</div>
 

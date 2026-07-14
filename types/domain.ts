@@ -32,7 +32,7 @@ export const INTAKE_STATUS_LABELS: Record<IntakeStatus, string> = {
 
 export type IntakeSectionKey =
 	| "clinical_context"
-	| "steadi"
+	| "hssat"
 	| "adl_iadl"
 	| "tug_test"
 	| "frail_scale"
@@ -47,7 +47,7 @@ export type IntakeSectionKey =
 
 export const INTAKE_SECTIONS = [
 	"clinical_context",
-	"steadi",
+	"hssat",
 	"adl_iadl",
 	"tug_test",
 	"frail_scale",
@@ -63,7 +63,7 @@ export const INTAKE_SECTIONS = [
 
 export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
 	clinical_context: "Clinical Context",
-	steadi: "Home Safety Checklist (STEADI)",
+	hssat: "Home Safety (HSSAT)",
 	adl_iadl: "ADLs & IADLs",
 	tug_test: "TUG Test",
 	frail_scale: "FRAIL Scale",
@@ -82,7 +82,7 @@ export type AssessmentTier = "tier0" | "tier1" | "tier1_5" | "tier2" | "tier3" |
 
 export const INTAKE_SECTION_TIERS: Record<IntakeSectionKey, AssessmentTier> = {
 	clinical_context: "tier0",
-	steadi: "tier1",
+	hssat: "tier1",
 	adl_iadl: "tier1",
 	tug_test: "tier1",
 	frail_scale: "tier1",
@@ -101,7 +101,7 @@ export const TIER2_TRIGGERS = {
 	berg_balance: "tug_test",        // TUG >= 12 seconds
 	tier2_cognitive: "slums",         // SLUMS below normal range
 	tier2_frailty: "frail_scale",     // FRAIL >= 3 (pre-frail or frail)
-	tier2_environmental: "steadi",    // STEADI high hazard count
+	tier2_environmental: "hssat",     // HSSAT high hazard count
 } as const;
 
 // ── Risk assessments ──────────────────────────────────────────────────────────

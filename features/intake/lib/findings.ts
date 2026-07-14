@@ -1,10 +1,11 @@
-import type { SteadiData, Tier2EnvironmentalData } from "@/types/intake";
+import type { HssatData, Tier2EnvironmentalData } from "@/types/intake";
 import type { ModificationCategory } from "@/types/modifications";
+import { HSSAT_AREAS } from "@/features/intake/components/section-hssat";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Home findings — the list of concrete issues identified during assessment.
 //
-// Aggregates flagged STEADI hazards and Tier 2 environmental findings into
+// Aggregates flagged HSSAT hazards and Tier 2 environmental findings into
 // one structure. Shown on the Home Modifications step (with one-click add,
 // prefilling triggered_by) and on the Review step. The triggered_by linkage
 // between finding and modification is what makes quotes traceable to
@@ -12,10 +13,10 @@ import type { ModificationCategory } from "@/types/modifications";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type HomeFinding = {
-	/** Stable id, e.g. "steadi:bath_support" */
+	/** Stable id, e.g. "hssat:bathroom:grab_bars_tub" */
 	id: string;
-	source: "steadi" | "tier2_environmental";
-	/** Area of the home, e.g. "Bathrooms", "Stairs & Steps", or a room name */
+	source: "hssat" | "tier2_environmental";
+	/** Area of the home, e.g. "Bathroom", "Staircases", or a room name */
 	area: string;
 	/** The issue, as flagged during assessment */
 	description: string;
@@ -27,29 +28,62 @@ export type HomeFinding = {
 	triggered_by: string;
 };
 
-// STEADI item id → catalog modification that typically remediates it.
-// Items without an entry (behavioral/habit findings) add as custom.
-const STEADI_SUGGESTIONS: Record<string, string> = {
-	floors_throw_rugs: "remove_throw_rugs",
-	floors_cords: "secure_loose_carpets",
-	stairs_broken: "step_repair",
-	stairs_no_light: "lighting_upgrade",
-	stairs_one_switch: "lighting_upgrade",
-	stairs_handrails: "second_handrail",
-	stairs_carpet: "secure_loose_carpets",
-	kitchen_high_shelves: "pull_out_shelves",
-	bedroom_light_reach: "lighting_upgrade",
-	bedroom_dark_path: "lighting_upgrade",
-	bath_slippery: "non_slip_flooring",
-	bath_support: "grab_bars_shower",
+// HSSAT item id → catalog modification that typically remediates it.
+// Item ids repeat across areas; "areaId:itemId" entries override the generic
+// item-id entries. Items with no entry add as custom modifications.
+const HSSAT_SUGGESTIONS: Record<string, string> = {
+	// Area-specific overrides
+	"front_entrance:railings": "handrails_outdoor",
+	"back_entrance:railings": "handrails_outdoor",
+	"front_entrance:lighting": "lighting_outdoor",
+	"back_entrance:lighting": "lighting_outdoor",
+	"front_entrance:threshold": "threshold_ramp",
+	"back_entrance:threshold": "threshold_ramp",
+	// Generic by item id
+	railings: "second_handrail",
+	unsafe_steps: "step_repair",
+	threshold: "doorway_threshold_fix",
+	lighting: "lighting_upgrade",
+	ramp: "ramp",
+	pavement: "path_repair",
+	grab_bar: "handrails_outdoor",
+	flooring: "non_slip_flooring",
+	ceiling_light: "lighting_upgrade",
+	throw_rug: "remove_throw_rugs",
+	bath_rugs: "remove_throw_rugs",
+	unsafe_carpet: "secure_loose_carpets",
+	switches: "lighting_upgrade",
+	cabinets: "pull_out_shelves",
+	stool_reaching: "pull_out_shelves",
+	counter_space: "lowered_counters",
+	slippery_floor: "non_slip_flooring",
+	bed_height: "hospital_bed",
+	phone: "emergency_response_system",
+	nightlight: "lighting_upgrade",
+	bed_device: "transfer_pole",
+	grab_bars_tub: "grab_bars_shower",
+	grab_bars_shower: "grab_bars_shower",
+	grab_bars_toilet: "grab_bars",
+	grab_bar_placement: "grab_bars",
+	toilet_height: "raised_toilet",
+	slippery_tub: "non_slip_flooring",
+	high_tub: "walk_in_tub",
+	bath_chair: "shower_bench",
+	slippery_steps: "non_slip_treads",
+	floor_contrast: "contrasting_edging",
 };
 
-const STEADI_AREA_CATEGORY: Record<string, ModificationCategory> = {
-	"Floors": "general",
-	"Stairs & Steps": "stairs",
-	"Kitchen": "kitchen",
-	"Bedrooms": "bedroom",
-	"Bathrooms": "bathroom",
+const HSSAT_AREA_CATEGORY: Record<string, ModificationCategory> = {
+	front_entrance: "entrance",
+	back_entrance: "entrance",
+	hallway: "hallway",
+	living_room: "general",
+	kitchen: "kitchen",
+	bedroom: "bedroom",
+	bathroom: "bathroom",
+	staircases: "stairs",
+	laundry_basement: "general",
+	garage: "general",
 };
 
 function categoryFromRoomName(name: string): ModificationCategory {
@@ -65,23 +99,44 @@ function categoryFromRoomName(name: string): ModificationCategory {
 }
 
 export function extractHomeFindings(
-	steadi: SteadiData | null | undefined,
+	hssat: HssatData | null | undefined,
 	tier2Env: Tier2EnvironmentalData | null | undefined
 ): HomeFinding[] {
 	const findings: HomeFinding[] = [];
 
-	// STEADI — every "yes" answer flags a hazard
-	for (const item of steadi?.items ?? []) {
-		if (item.response !== "yes") continue;
-		findings.push({
-			id: `steadi:${item.id}`,
-			source: "steadi",
-			area: item.section,
-			description: item.question,
-			suggested_type: STEADI_SUGGESTIONS[item.id],
-			suggested_category: STEADI_AREA_CATEGORY[item.section] ?? "general",
-			triggered_by: `STEADI — ${item.section}: ${item.question}`,
-		});
+	// HSSAT — every checked item is a hazard; per-area "Other" text too
+	for (const area of hssat?.areas ?? []) {
+		const catalog = HSSAT_AREAS.find((a) => a.id === area.id);
+		const areaName = catalog?.name ?? area.name;
+		const category = HSSAT_AREA_CATEGORY[area.id] ?? "general";
+
+		for (const hazardId of area.hazards ?? []) {
+			const label =
+				catalog?.items.find((i) => i.id === hazardId)?.label ?? hazardId;
+			findings.push({
+				id: `hssat:${area.id}:${hazardId}`,
+				source: "hssat",
+				area: areaName,
+				description: label,
+				suggested_type:
+					HSSAT_SUGGESTIONS[`${area.id}:${hazardId}`] ??
+					HSSAT_SUGGESTIONS[hazardId],
+				suggested_category: category,
+				triggered_by: `HSSAT — ${areaName}: ${label}`,
+			});
+		}
+
+		const other = area.other?.trim();
+		if (other) {
+			findings.push({
+				id: `hssat:${area.id}:other`,
+				source: "hssat",
+				area: areaName,
+				description: other,
+				suggested_category: category,
+				triggered_by: `HSSAT — ${areaName} (other): ${other}`,
+			});
+		}
 	}
 
 	// Tier 2 environmental — room-by-room hazards

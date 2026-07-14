@@ -44,8 +44,8 @@ export async function persistAssessment(
 		client_id: clientId,
 		intake_id: intakeId,
 		scoring_version: SCORING_VERSION,
-		// v2.1 domain scores (STEADI / SLUMS per Anchor Index v2)
-		steadi_score: scoring.steadi_score,
+		// v2.1 domain scores (HSSAT / SLUMS per Anchor Index v2)
+		hssat_score: scoring.hssat_score,
 		adl_iadl_score: scoring.adl_iadl_score,
 		tug_test_score: scoring.tug_test_score,
 		frail_scale_score: scoring.frail_scale_score,
@@ -59,7 +59,7 @@ export async function persistAssessment(
 	};
 
 	// Also write legacy NOT NULL column names for backward compat
-	insert.home_safety_score = scoring.steadi_score;
+	insert.home_safety_score = scoring.hssat_score;
 	insert.adls_iadls_score = scoring.adl_iadl_score;
 	insert.mobility_score = scoring.tug_test_score;
 	insert.cognition_score = scoring.slums_score;

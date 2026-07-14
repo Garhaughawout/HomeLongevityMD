@@ -98,6 +98,7 @@ export type Database = {
 					adl_iadl: Json | null;
 					slums: Json | null;
 					steadi: Json | null;
+					hssat: Json | null;
 					tug_test: Json | null;
 					frail_scale: Json | null;
 					mmse: Json | null;
@@ -141,6 +142,7 @@ export type Database = {
 					adl_iadl?: Json | null;
 					slums?: Json | null;
 					steadi?: Json | null;
+					hssat?: Json | null;
 					tug_test?: Json | null;
 					frail_scale?: Json | null;
 					mmse?: Json | null;
@@ -184,6 +186,7 @@ export type Database = {
 					adl_iadl?: Json | null;
 					slums?: Json | null;
 					steadi?: Json | null;
+					hssat?: Json | null;
 					tug_test?: Json | null;
 					frail_scale?: Json | null;
 					mmse?: Json | null;
@@ -417,6 +420,7 @@ export type Database = {
 					adl_iadl_score: number | null;
 					slums_score: number | null;
 					steadi_score: number | null;
+					hssat_score: number | null;
 					tug_test_score: number | null;
 					frail_scale_score: number | null;
 					mmse_score: number | null;
@@ -447,6 +451,7 @@ export type Database = {
 					adl_iadl_score?: number | null;
 					slums_score?: number | null;
 					steadi_score?: number | null;
+					hssat_score?: number | null;
 					tug_test_score?: number | null;
 					frail_scale_score?: number | null;
 					mmse_score?: number | null;
@@ -477,6 +482,7 @@ export type Database = {
 					adl_iadl_score?: number | null;
 					slums_score?: number | null;
 					steadi_score?: number | null;
+					hssat_score?: number | null;
 					tug_test_score?: number | null;
 					frail_scale_score?: number | null;
 					mmse_score?: number | null;

@@ -15,7 +15,7 @@ import type { HomeFinding } from "@/features/intake/lib/findings";
 type Props = {
 	value: HomeModificationsData;
 	onChange: (v: HomeModificationsData) => void;
-	/** Issues flagged during assessment (STEADI hazards, Tier 2 findings) */
+	/** Issues flagged during assessment (HSSAT hazards, Tier 2 findings) */
 	findings?: HomeFinding[];
 };
 
@@ -112,7 +112,7 @@ export function SectionHomeModifications({ value, onChange, findings = [] }: Pro
 			{findings.length > 0 && (
 				<FieldGroup
 					legend="Findings from assessment"
-					description="Issues flagged during the STEADI checklist and Tier 2 environmental review. Add the matching modification with one click — the trigger is recorded automatically."
+					description="Issues flagged during the HSSAT checklist and Tier 2 environmental review. Add the matching modification with one click — the trigger is recorded automatically."
 					badge={`${findings.length} found`}
 				>
 					{findings.map((f) => {
@@ -132,7 +132,7 @@ export function SectionHomeModifications({ value, onChange, findings = [] }: Pro
 									<p className="mt-0.5 text-xs text-[color:var(--muted)]">
 										{f.area}
 										{" · "}
-										{f.source === "steadi" ? "STEADI" : "Tier 2 environmental"}
+										{f.source === "hssat" ? "HSSAT" : "Tier 2 environmental"}
 										{suggestion && (
 											<>
 												{" · suggests "}
@@ -325,7 +325,7 @@ export function SectionHomeModifications({ value, onChange, findings = [] }: Pro
 													color: "var(--foreground)",
 													backgroundColor: "var(--surface-strong)",
 												}}
-												placeholder="e.g., STEADI bathroom"
+												placeholder="e.g., HSSAT bathroom"
 											/>
 										</div>
 									</div>

@@ -5,7 +5,7 @@ import type { HomeModificationsData } from "@/types/modifications";
 // These interfaces type the JSONB columns on the client_intake table.
 // Based on the FMII Model — a 3-tier adaptive assessment workflow:
 //   Tier 0  — Clinical Context (demographics, medical snapshot, occupational profile)
-//   Tier 1  — Universal Baseline Screening (STEADI, ADL/IADL, TUG, FRAIL, SLUMS)
+//   Tier 1  — Universal Baseline Screening (HSSAT, ADL/IADL, TUG, FRAIL, SLUMS)
 //   Tier 1.5 — OT Clinical Judgment (risk adjustment)
 //   Tier 2  — Triggered Adaptive Assessments (Berg Balance, Cognitive/Safety,
 //             Frailty/Medical, Environmental Hazard pathways)
@@ -103,30 +103,38 @@ export interface ClinicalContextData {
 
 // ── Tier 1: Universal Baseline Screening ─────────────────────────────────────
 
-// ── 1. STEADI Home Safety Checklist ──────────────────────────────────────────
+// ── 1. HSSAT Home Safety Checklist ───────────────────────────────────────────
 
 /**
- * Single STEADI checklist item — one YES/NO/N/A question within a room.
+ * Result for one HSSAT home area — mirrors the instrument's structure of
+ * 10 areas, each with a checklist and a per-area problem count.
  */
-export interface SteadiItem {
+export interface HssatAreaResult {
+	/** Stable area id, e.g. "front_entrance" */
 	id: string;
-	section: string;
-	question: string;
-	response?: YesNoNa;
+	/** Display name, e.g. "Entrance to Front Door and Front Yard" */
+	name: string;
+	/** Item ids of hazards checked as present in this area */
+	hazards?: string[];
+	/** The area's "Other" free-text hazard, if any */
+	other?: string;
+	/** Checked hazards + 1 if other is filled */
+	hazard_count?: number;
 }
 
 /**
- * CDC STEADI "Check for Safety" home fall-hazard checklist (public domain).
+ * HSSAT v5 — Home Safety Self-Assessment Tool (University at Buffalo,
+ * public domain, used with author acknowledgement).
  *
  * Replaced HOME FAST (commercially licensed) per the Anchor Index v2
- * methodology, July 2026. Structured as an array of items grouped by room.
- * Each "yes" answer flags a hazard; the total hazard count drives escalation
- * to the Tier 2 Environmental Hazard pathway.
+ * methodology, July 2026. The data model mirrors the instrument: 10 home
+ * areas, each with its own hazard checklist and per-area count, plus a
+ * grand total that drives escalation to the Tier 2 Environmental pathway.
  */
-export interface SteadiData {
-	items?: SteadiItem[];
-	/** Count of "yes" (hazard) answers across all items */
-	hazard_count?: number;
+export interface HssatData {
+	areas?: HssatAreaResult[];
+	/** Grand total of hazards across all areas */
+	total_hazards?: number;
 	notes?: string;
 }
 
@@ -534,7 +542,7 @@ export interface PhysicianReviewData {
 /** All intake section data, matching client_intake table JSONB columns */
 export interface ClientIntakeSections {
 	clinical_context: ClinicalContextData | null;
-	steadi: SteadiData | null;
+	hssat: HssatData | null;
 	adl_iadl: AdlIadlData | null;
 	tug_test: TugTestData | null;
 	frail_scale: FrailScaleData | null;
@@ -546,7 +554,7 @@ export interface ClientIntakeSections {
 	tier2_cognitive: Tier2CognitiveData | null;
 	/** Conditional — triggered when FRAIL ≥ 1 */
 	tier2_frailty: Tier2FrailtyData | null;
-	/** Conditional — triggered when STEADI hazard count exceeds threshold */
+	/** Conditional — triggered when HSSAT hazard count exceeds threshold */
 	tier2_environmental: Tier2EnvironmentalData | null;
 	physician_review: PhysicianReviewData | null;
 	/** Post-assessment modification recommendations */
@@ -556,7 +564,7 @@ export interface ClientIntakeSections {
 /** Union of all intake section data types */
 export type IntakeSectionData =
 	| ClinicalContextData
-	| SteadiData
+	| HssatData
 	| AdlIadlData
 	| TugTestData
 	| FrailScaleData

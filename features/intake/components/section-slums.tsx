@@ -11,6 +11,9 @@ import {
 	InfoBanner,
 } from "./fields";
 
+export const SLUMS_OFFICIAL_URL =
+	"https://www.slu.edu/medicine/internal-medicine/geriatric-medicine/aging-successfully/-pdf/slums-form.pdf";
+
 type Props = {
 	value: SlumsData;
 	onChange: (v: SlumsData) => void;
@@ -145,10 +148,21 @@ export function SectionSlums({ value, onChange }: Props) {
 	return (
 		<div className="space-y-5">
 			<InfoBanner variant="info">
-				<strong>SLUMS</strong> — Saint Louis University Mental Status
-				examination. 30-point cognitive screen; interpretation adjusts for
-				education level. Ask the questions in order and score as the client
-				responds.
+				<strong>SLUMS</strong> — 30-point cognitive screen; interpretation
+				adjusts for education level.{" "}
+				<strong>
+					Administer from the{" "}
+					<a
+						href={SLUMS_OFFICIAL_URL}
+						target="_blank"
+						rel="noreferrer"
+						className="underline"
+					>
+						official SLUMS form (PDF)
+					</a>
+				</strong>{" "}
+				— it contains the scripted questions, story, and clock/figure
+				graphics. Record only the scores here.
 			</InfoBanner>
 
 			<FieldGroup
@@ -173,25 +187,18 @@ export function SectionSlums({ value, onChange }: Props) {
 				description="1 point per correct answer."
 				badge={`${orientationScore}/3`}
 			>
-				<ScoreItem label="What day of the week is it?" value={s.day_of_week} onChange={(v) => u("day_of_week", v)} />
-				<ScoreItem label="What is the year?" value={s.year} onChange={(v) => u("year", v)} />
-				<ScoreItem label="What state are we in?" value={s.state} onChange={(v) => u("state", v)} />
+				<ScoreItem label="Day of the week" value={s.day_of_week} onChange={(v) => u("day_of_week", v)} />
+				<ScoreItem label="Year" value={s.year} onChange={(v) => u("year", v)} />
+				<ScoreItem label="State" value={s.state} onChange={(v) => u("state", v)} />
 			</FieldGroup>
 
 			<FieldGroup
 				legend="2. Calculation"
-				description={
-					<>
-						&ldquo;You have $100 and you go to the store and buy a dozen
-						apples for $3 and a tricycle for $20.&rdquo; Also tell the
-						client: &ldquo;Please remember these five objects — apple, pen,
-						tie, house, car — I will ask you for them later.&rdquo;
-					</>
-				}
+				description="Administer the spending problem from the official form, and name the five objects for later recall."
 				badge={`${mathScore}/3`}
 			>
-				<ScoreItem label="How much did you spend? ($23)" value={s.math_spent} onChange={(v) => u("math_spent", v)} />
-				<ScoreItem label="How much do you have left? ($77)" value={s.math_left} onChange={(v) => u("math_left", v)} points={2} />
+				<ScoreItem label="Amount spent — correct" value={s.math_spent} onChange={(v) => u("math_spent", v)} />
+				<ScoreItem label="Amount remaining — correct" value={s.math_left} onChange={(v) => u("math_left", v)} points={2} />
 			</FieldGroup>
 
 			<FieldGroup
@@ -216,62 +223,52 @@ export function SectionSlums({ value, onChange }: Props) {
 
 			<FieldGroup
 				legend="4. Five-object recall"
-				description="Ask the client to recall the five objects from earlier. 1 point per object."
+				description="The five objects named earlier (listed on the official form). 1 point per object recalled."
 				badge={`${recallScore}/5`}
 			>
-				<ScoreItem label="Recalled “apple”" value={s.recall_apple} onChange={(v) => u("recall_apple", v)} />
-				<ScoreItem label="Recalled “pen”" value={s.recall_pen} onChange={(v) => u("recall_pen", v)} />
-				<ScoreItem label="Recalled “tie”" value={s.recall_tie} onChange={(v) => u("recall_tie", v)} />
-				<ScoreItem label="Recalled “house”" value={s.recall_house} onChange={(v) => u("recall_house", v)} />
-				<ScoreItem label="Recalled “car”" value={s.recall_car} onChange={(v) => u("recall_car", v)} />
+				<ScoreItem label="Object 1 recalled" value={s.recall_apple} onChange={(v) => u("recall_apple", v)} />
+				<ScoreItem label="Object 2 recalled" value={s.recall_pen} onChange={(v) => u("recall_pen", v)} />
+				<ScoreItem label="Object 3 recalled" value={s.recall_tie} onChange={(v) => u("recall_tie", v)} />
+				<ScoreItem label="Object 4 recalled" value={s.recall_house} onChange={(v) => u("recall_house", v)} />
+				<ScoreItem label="Object 5 recalled" value={s.recall_car} onChange={(v) => u("recall_car", v)} />
 			</FieldGroup>
 
 			<FieldGroup
 				legend="5. Digit span backward"
-				description="Say each series of numbers and ask the client to repeat it backwards. Practice first with 42 → 24 (not scored)."
+				description="Administer the number series from the official form (the practice series is not scored)."
 				badge={`${digitScore}/2`}
 			>
-				<ScoreItem label="649 → 946" value={s.digits_649} onChange={(v) => u("digits_649", v)} />
-				<ScoreItem label="8537 → 7358" value={s.digits_8537} onChange={(v) => u("digits_8537", v)} />
+				<ScoreItem label="Three-digit series — correct" value={s.digits_649} onChange={(v) => u("digits_649", v)} />
+				<ScoreItem label="Four-digit series — correct" value={s.digits_8537} onChange={(v) => u("digits_8537", v)} />
 			</FieldGroup>
 
 			<FieldGroup
 				legend="6. Clock drawing"
-				description="Ask the client to draw a clock face showing ten minutes to eleven o'clock."
+				description="Clock-drawing task — administer per the official form."
 				badge={`${clockScore}/4`}
 			>
 				<ScoreItem label="Hour markers placed correctly" value={s.clock_hour_markers} onChange={(v) => u("clock_hour_markers", v)} points={2} />
-				<ScoreItem label="Time shown correctly (10:50)" value={s.clock_time_correct} onChange={(v) => u("clock_time_correct", v)} points={2} />
+				<ScoreItem label="Time shown correctly" value={s.clock_time_correct} onChange={(v) => u("clock_time_correct", v)} points={2} />
 			</FieldGroup>
 
 			<FieldGroup
 				legend="7. Figure recognition"
-				description="Show the triangle, square, and rectangle figures."
+				description="Figure task — show the figures on the official form."
 				badge={`${figureScore}/2`}
 			>
-				<ScoreItem label="Placed an X in the triangle" value={s.x_in_triangle} onChange={(v) => u("x_in_triangle", v)} />
+				<ScoreItem label="Marked the correct figure" value={s.x_in_triangle} onChange={(v) => u("x_in_triangle", v)} />
 				<ScoreItem label="Identified the largest figure" value={s.largest_figure} onChange={(v) => u("largest_figure", v)} />
 			</FieldGroup>
 
 			<FieldGroup
 				legend="8. Story recall"
-				description={
-					<>
-						Read the story, then ask the four questions. &ldquo;Jill was a
-						very successful stockbroker. She made a lot of money on the
-						stock market. She then met Jack, a devastatingly handsome man.
-						She married him and had three children. They lived in Chicago.
-						She then stopped working and stayed at home to bring up her
-						children. When they were teenagers, she went back to work. She
-						and Jack lived happily ever after.&rdquo;
-					</>
-				}
+				description="Read the story from the official form, then score the four recall questions. 2 points each, all-or-nothing."
 				badge={`${storyScore}/8`}
 			>
-				<ScoreItem label="What was the female's name? (Jill)" value={s.story_name} onChange={(v) => u("story_name", v)} points={2} />
-				<ScoreItem label="What work did she do? (Stockbroker)" value={s.story_occupation} onChange={(v) => u("story_occupation", v)} points={2} />
-				<ScoreItem label="When did she go back to work? (When the children were teenagers)" value={s.story_work_return} onChange={(v) => u("story_work_return", v)} points={2} />
-				<ScoreItem label="What state did she live in? (Illinois)" value={s.story_state} onChange={(v) => u("story_state", v)} points={2} />
+				<ScoreItem label="Recalled the name" value={s.story_name} onChange={(v) => u("story_name", v)} points={2} />
+				<ScoreItem label="Recalled the occupation" value={s.story_occupation} onChange={(v) => u("story_occupation", v)} points={2} />
+				<ScoreItem label="Recalled when she returned to work" value={s.story_work_return} onChange={(v) => u("story_work_return", v)} points={2} />
+				<ScoreItem label="Recalled the state" value={s.story_state} onChange={(v) => u("story_state", v)} points={2} />
 			</FieldGroup>
 
 			{hasAnswers ? (
@@ -303,6 +300,15 @@ export function SectionSlums({ value, onChange }: Props) {
 				onChange={(v) => u("notes", v)}
 				placeholder="Additional cognitive observations…"
 			/>
+
+			<p className="text-xs leading-relaxed text-[color:var(--muted)]">
+				The Saint Louis University Mental Status (SLUMS) Examination is used
+				courtesy of Saint Louis University and the Department of Veterans
+				Affairs. Administering clinicians must view the VA-produced training
+				video prior to first use and annually thereafter (available at
+				SLU&rsquo;s assessment-tools page). Contact aging@slu.edu with
+				questions regarding this instrument.
+			</p>
 		</div>
 	);
 }

@@ -47,7 +47,7 @@ export function suggestServices(assessment: RiskAssessmentRow): string[] {
 		"Local resource & referral guide",
 	]);
 
-	if ((assessment.steadi_score ?? 0) >= 40)
+	if ((assessment.hssat_score ?? 0) >= 40)
 		services.add("Home safety assessment & modification recommendations");
 
 	if ((assessment.tug_test_score ?? 0) >= 40) {

@@ -4,7 +4,7 @@ import { useState, useTransition, useMemo } from "react";
 import type { ClientRow, ClientIntakeRow } from "@/types/supabase";
 import type {
 	ClinicalContextData,
-	SteadiData,
+	HssatData,
 	AdlIadlData,
 	TugTestData,
 	FrailScaleData,
@@ -20,7 +20,7 @@ import type { HomeModificationsData } from "@/types/modifications";
 import { saveSectionAction } from "@/features/intake/actions/save-section";
 import { WizardProgress, buildWizardSteps, type WizardStep } from "./wizard-progress";
 import { SectionClinicalContext } from "./section-clinical-context";
-import { SectionSteadi } from "./section-steadi";
+import { SectionHssat } from "./section-hssat";
 import { SectionAdlIadl } from "./section-adl-iadl";
 import { SectionTugTest } from "./section-tug-test";
 import { SectionFrailScale } from "./section-frail-scale";
@@ -55,7 +55,7 @@ function buildCompletedSections(intake: ClientIntakeRow | null): Set<string> {
 	if (!intake) return new Set();
 	const keys = [
 		"clinical_context",
-		"steadi",
+		"hssat",
 		"adl_iadl",
 		"tug_test",
 		"frail_scale",
@@ -93,8 +93,8 @@ export function IntakeWizard({ client, intake }: Props) {
 	const [clinicalContext, setClinicalContext] = useState<ClinicalContextData>(
 		(intake?.clinical_context as ClinicalContextData) ?? {}
 	);
-	const [steadi, setSteadi] = useState<SteadiData>(
-		(intake?.steadi as SteadiData) ?? {}
+	const [hssat, setHssat] = useState<HssatData>(
+		(intake?.hssat as HssatData) ?? {}
 	);
 	const [adlIadl, setAdlIadl] = useState<AdlIadlData>(
 		(intake?.adl_iadl as AdlIadlData) ??
@@ -157,14 +157,14 @@ export function IntakeWizard({ client, intake }: Props) {
 			triggers.add("tier2_frailty");
 		}
 
-		// STEADI high hazards (>= 4 of 16 items) → Environmental Pathway
-		const hazardCount = steadi.hazard_count ?? 0;
-		if (hazardCount >= 4) {
+		// HSSAT high hazards (>= 8 across all areas) → Environmental Pathway
+		const hazardCount = hssat.total_hazards ?? 0;
+		if (hazardCount >= 8) {
 			triggers.add("tier2_environmental");
 		}
 
 		return triggers;
-	}, [tugTest, slums, frailScale, steadi]);
+	}, [tugTest, slums, frailScale, hssat]);
 
 	// ── Build dynamic step list ────────────────────────────────────────────────
 
@@ -173,8 +173,8 @@ export function IntakeWizard({ client, intake }: Props) {
 	// ── Issues flagged during assessment (drives modification suggestions) ─────
 
 	const homeFindings = useMemo(
-		() => extractHomeFindings(steadi, tier2Environmental),
-		[steadi, tier2Environmental]
+		() => extractHomeFindings(hssat, tier2Environmental),
+		[hssat, tier2Environmental]
 	);
 
 	// ── Current section key + data ──────────────────────────────────────────────
@@ -191,8 +191,8 @@ export function IntakeWizard({ client, intake }: Props) {
 		switch (step.key) {
 			case "clinical_context":
 				return { key: step.key, data: clinicalContext };
-			case "steadi":
-				return { key: step.key, data: steadi };
+			case "hssat":
+				return { key: step.key, data: hssat };
 			case "adl_iadl":
 				return { key: step.key, data: adlIadl };
 			case "tug_test":
@@ -349,10 +349,10 @@ export function IntakeWizard({ client, intake }: Props) {
 							onChange={setClinicalContext}
 						/>
 					)}
-					{steps[currentStep]?.key === "steadi" && (
-						<SectionSteadi
-							value={steadi}
-							onChange={setSteadi}
+					{steps[currentStep]?.key === "hssat" && (
+						<SectionHssat
+							value={hssat}
+							onChange={setHssat}
 						/>
 					)}
 					{steps[currentStep]?.key === "adl_iadl" && (
@@ -428,7 +428,7 @@ export function IntakeWizard({ client, intake }: Props) {
 							intakeId={intakeId}
 							sections={{
 								clinical_context: clinicalContext,
-								steadi: steadi,
+								hssat: hssat,
 								adl_iadl: adlIadl,
 								tug_test: tugTest,
 								frail_scale: frailScale,

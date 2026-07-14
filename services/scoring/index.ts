@@ -4,11 +4,11 @@
 // Converts a submitted ClientIntakeRow into domain scores (0–100 each) and
 // an aggregate risk score + category.  Higher scores = greater risk.
 //
-// v2.1 (July 2026): STEADI replaces HOME FAST and SLUMS replaces the MMSE,
+// v2.1 (July 2026): HSSAT replaces HOME FAST and SLUMS replaces the MMSE,
 // per the Anchor Index v2 methodology (open-license instruments only).
 //
 // Domain weights (sum = 1.0):
-//   steadi 20 % | adl_iadl 20 % | tug_test 15 %
+//   hssat 20 % | adl_iadl 20 % | tug_test 15 %
 //   frail_scale 15 % | slums 20 % | ot_clinical_judgment 10 %
 //
 // Physician review (physician_review.physician_overall_risk) can only
@@ -17,7 +17,7 @@
 
 import type { ClientIntakeRow } from "@/types/supabase";
 import type {
-	SteadiData,
+	HssatData,
 	AdlIadlData,
 	TugTestData,
 	FrailScaleData,
@@ -38,7 +38,7 @@ export type RiskCategory =
 	| "unsafe_independent";
 
 export interface ScoringResult {
-	steadi_score: number;
+	hssat_score: number;
 	adl_iadl_score: number;
 	tug_test_score: number;
 	frail_scale_score: number;
@@ -65,20 +65,22 @@ const CATEGORY_ORDER: RiskCategory[] = [
 
 // ── Domain scorers ────────────────────────────────────────────────────────────
 
-function scoreSteadi(d: SteadiData | null | undefined): number {
-	if (!d || !d.items || d.items.length === 0) return 50;
+function scoreHssat(d: HssatData | null | undefined): number {
+	if (!d || !d.areas || d.areas.length === 0) return 50;
 
-	// Every "yes" answer on the STEADI checklist flags a hazard. Bands are
-	// proportional to the 16-item checklist length.
-	const hazardCount = d.items.filter(
-		(item) => item.response === "yes"
-	).length;
+	// Grand total of checked hazards (+ per-area "other" entries) across the
+	// instrument's 10 home areas (~74 items). Recomputed from raw data.
+	const total = d.areas.reduce(
+		(sum, a) =>
+			sum + (a.hazards?.length ?? 0) + (a.other?.trim() ? 1 : 0),
+		0
+	);
 
-	if (hazardCount === 0) return 0;
-	if (hazardCount <= 2) return 20;
-	if (hazardCount <= 4) return 40;
-	if (hazardCount <= 6) return 60;
-	if (hazardCount <= 9) return 80;
+	if (total === 0) return 0;
+	if (total <= 3) return 20;
+	if (total <= 7) return 40;
+	if (total <= 12) return 60;
+	if (total <= 18) return 80;
 	return 100;
 }
 
@@ -251,7 +253,7 @@ function deriveCategory(
 // ── Public entry point ────────────────────────────────────────────────────────
 
 export function scoreIntake(intake: ClientIntakeRow): ScoringResult {
-	const steadi = scoreSteadi(intake.steadi as SteadiData | null);
+	const hssat = scoreHssat(intake.hssat as HssatData | null);
 	const adl = scoreAdlIadl(intake.adl_iadl as AdlIadlData | null);
 	const tug = scoreTugTest(intake.tug_test as TugTestData | null);
 	const frail = scoreFrailScale(intake.frail_scale as FrailScaleData | null);
@@ -264,13 +266,13 @@ export function scoreIntake(intake: ClientIntakeRow): ScoringResult {
 	const physicianOverride = physician?.physician_overall_risk ?? null;
 
 	const aggregate = clamp(
-		steadi * 0.2 + adl * 0.2 + tug * 0.15 + frail * 0.15 + slums * 0.2 + ot * 0.1
+		hssat * 0.2 + adl * 0.2 + tug * 0.15 + frail * 0.15 + slums * 0.2 + ot * 0.1
 	);
 
 	const risk_category = deriveCategory(aggregate, physicianOverride);
 
 	return {
-		steadi_score: steadi,
+		hssat_score: hssat,
 		adl_iadl_score: adl,
 		tug_test_score: tug,
 		frail_scale_score: frail,
@@ -282,7 +284,7 @@ export function scoreIntake(intake: ClientIntakeRow): ScoringResult {
 			scoring_version: SCORING_VERSION,
 			physician_override: physicianOverride,
 			domain_weights: {
-				steadi: 0.2,
+				hssat: 0.2,
 				adl_iadl: 0.2,
 				tug_test: 0.15,
 				frail_scale: 0.15,

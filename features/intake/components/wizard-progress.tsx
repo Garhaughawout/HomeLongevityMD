@@ -17,7 +17,7 @@ export interface WizardStep {
 // Base steps (always shown)
 const BASE_STEPS: WizardStep[] = [
 	{ key: "clinical_context", label: INTAKE_SECTION_LABELS.clinical_context, tier: "tier0" },
-	{ key: "steadi", label: INTAKE_SECTION_LABELS.steadi, tier: "tier1" },
+	{ key: "hssat", label: INTAKE_SECTION_LABELS.hssat, tier: "tier1" },
 	{ key: "adl_iadl", label: INTAKE_SECTION_LABELS.adl_iadl, tier: "tier1" },
 	{ key: "tug_test", label: INTAKE_SECTION_LABELS.tug_test, tier: "tier1" },
 	{ key: "frail_scale", label: INTAKE_SECTION_LABELS.frail_scale, tier: "tier1" },
@@ -33,7 +33,7 @@ const TIER2_STEPS: WizardStep[] = [
 	{ key: "berg_balance", label: INTAKE_SECTION_LABELS.berg_balance, tier: "tier2", conditional: true, triggerLabel: "Triggered by TUG ≥ 12s" },
 	{ key: "tier2_cognitive", label: INTAKE_SECTION_LABELS.tier2_cognitive, tier: "tier2", conditional: true, triggerLabel: "Triggered by SLUMS below normal" },
 	{ key: "tier2_frailty", label: INTAKE_SECTION_LABELS.tier2_frailty, tier: "tier2", conditional: true, triggerLabel: "Triggered by FRAIL ≥ 3" },
-	{ key: "tier2_environmental", label: INTAKE_SECTION_LABELS.tier2_environmental, tier: "tier2", conditional: true, triggerLabel: "Triggered by STEADI hazards" },
+	{ key: "tier2_environmental", label: INTAKE_SECTION_LABELS.tier2_environmental, tier: "tier2", conditional: true, triggerLabel: "Triggered by HSSAT hazards" },
 ];
 
 // ── Helper: build dynamic step list ───────────────────────────────────────────
