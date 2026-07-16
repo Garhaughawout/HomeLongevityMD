@@ -39,6 +39,7 @@ type EventType =
 	| "intake_saved"
 	| "intake_submitted"
 	| "assessment_persisted"
+	| "assessment_deleted"
 	| "quote_generated"
 	| "quote_sent"
 	| "quote_accepted"

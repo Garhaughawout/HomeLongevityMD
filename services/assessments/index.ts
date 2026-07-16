@@ -32,6 +32,33 @@ export async function getLatestAssessmentByClientId(
 	return data;
 }
 
+export async function deleteAssessment(assessmentId: string): Promise<void> {
+	const supabase = createServerSupabaseClient();
+
+	// Refuse to delete an assessment that a quote was priced against — that
+	// linkage is the pricing model's training evidence.
+	const { data: linkedQuote, error: quoteError } = await supabase
+		.from("quotes")
+		.select("id, version")
+		.eq("assessment_id", assessmentId)
+		.limit(1)
+		.maybeSingle();
+
+	if (quoteError) throw new Error(quoteError.message);
+	if (linkedQuote) {
+		throw new Error(
+			`This assessment is linked to quote v${linkedQuote.version}. Delete that quote first, or keep the assessment for traceability.`
+		);
+	}
+
+	const { error } = await supabase
+		.from("risk_assessments")
+		.delete()
+		.eq("id", assessmentId);
+
+	if (error) throw new Error(error.message);
+}
+
 export async function persistAssessment(
 	clientId: string,
 	intakeId: string,

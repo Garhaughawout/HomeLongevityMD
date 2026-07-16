@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getClientById } from "@/services/clients";
 import { getAssessmentsByClientId } from "@/services/assessments";
+import { DeleteAssessmentButton } from "@/features/clients/components/delete-assessment-button";
 import type { RiskAssessmentRow } from "@/types/supabase";
 
 const CATEGORY_STYLES: Record<
@@ -107,6 +108,10 @@ function AssessmentCard({
 					>
 						Generate Quote
 					</Link>
+					<DeleteAssessmentButton
+						clientId={clientId}
+						assessmentId={assessment.id}
+					/>
 				</div>
 			</div>
 			<div className="grid gap-3 sm:grid-cols-2">
