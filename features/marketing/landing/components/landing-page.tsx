@@ -53,7 +53,7 @@ export function LandingPage() {
 							{
 								step: "1",
 								title: "We visit",
-								desc: "Dr. Haughawout comes to the home at a time that works for you, and sees how daily life actually happens there — something no office visit can show.",
+								desc: "A Trained professional comes to the home at a time that works for you, and sees how daily life actually happens there — something no office visit can show.",
 							},
 							{
 								step: "2",
