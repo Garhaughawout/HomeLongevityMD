@@ -60,6 +60,9 @@ export function UpdatePasswordForm() {
 			return;
 		}
 
+		// Password is set — release the middleware pin and enter the app
+		document.cookie = "hlmd_pending_password=; Max-Age=0; path=/";
+
 		setStatus("done");
 		router.push("/dashboard");
 		router.refresh();

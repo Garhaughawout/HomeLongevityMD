@@ -49,6 +49,21 @@ export async function middleware(request: NextRequest) {
 		return Response.redirect(dashboardUrl);
 	}
 
+	// Sessions created from an invite or password-reset link are pinned to
+	// the set-password page until a password has actually been set.
+	if (
+		user &&
+		request.cookies.get("hlmd_pending_password") &&
+		isMatchingRoute(pathname, protectedRoutePrefixes)
+	) {
+		const updatePasswordUrl = request.nextUrl.clone();
+
+		updatePasswordUrl.pathname = "/update-password";
+		updatePasswordUrl.search = "";
+
+		return Response.redirect(updatePasswordUrl);
+	}
+
 	return response;
 }
 

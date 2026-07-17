@@ -62,5 +62,16 @@ export async function GET(request: NextRequest) {
 		return NextResponse.redirect(failureUrl);
 	}
 
+	// Invite/recovery sessions must set a password before using the app.
+	// The middleware pins navigation to /update-password while this cookie
+	// is present; the set-password form clears it on success.
+	if (type === "invite" || type === "recovery") {
+		successResponse.cookies.set("hlmd_pending_password", "1", {
+			path: "/",
+			maxAge: 60 * 60,
+			sameSite: "lax",
+		});
+	}
+
 	return successResponse;
 }
