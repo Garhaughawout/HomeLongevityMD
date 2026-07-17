@@ -16,6 +16,19 @@ export function UpdatePasswordForm() {
 	// The confirm route establishes a session before sending the user here.
 	// If someone lands here without one, the link was invalid or expired.
 	useEffect(() => {
+		// Resilience: if an email link delivered a token_hash directly to this
+		// page (mis-configured template), forward it to the confirm route,
+		// which knows how to redeem it.
+		const params = new URLSearchParams(window.location.search);
+		const tokenHash = params.get("token_hash");
+		if (tokenHash) {
+			const type = params.get("type") ?? "recovery";
+			window.location.replace(
+				`/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}&next=/update-password`
+			);
+			return;
+		}
+
 		const supabase = getBrowserSupabaseClient();
 		supabase.auth.getUser().then(({ data }) => {
 			setStatus(data.user ? "ready" : "no_session");
