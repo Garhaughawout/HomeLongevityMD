@@ -22,9 +22,9 @@ export function LandingPage() {
 					Maybe you&rsquo;ve started noticing small changes in a parent
 					— the missed step, the unopened mail. Either way, the
 					question is the same: <em>what needs to happen so home stays
-					possible?</em> A physician comes to the home, assesses
-					health, mobility, and safety, and turns that question into a
-					clear plan.
+					possible?</em> A physician-led team comes to the home,
+					assesses health, mobility, and safety, and turns that
+					question into a clear plan.
 				</p>
 				<div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
 					<Link
@@ -53,7 +53,7 @@ export function LandingPage() {
 							{
 								step: "1",
 								title: "We visit",
-								desc: "A Trained professional comes to the home at a time that works for you, and sees how daily life actually happens there — something no office visit can show.",
+								desc: "A trained clinician comes to the home at a time that works for you, and sees how daily life actually happens there — something no office visit can show.",
 							},
 							{
 								step: "2",
@@ -95,7 +95,7 @@ export function LandingPage() {
 					<p className="mt-4 text-base leading-8 text-[color:var(--muted-strong)]">
 						You&rsquo;ve lived here for decades and you&rsquo;re not
 						interested in leaving. Good — that&rsquo;s the goal. An
-						assessment gives you a physician&rsquo;s honest read on
+						assessment gives you an honest, physician-reviewed read on
 						what will keep you independent: which rooms need
 						attention, which habits carry risk, and what to change
 						now, on your terms, before something changes it for you.
@@ -111,7 +111,7 @@ export function LandingPage() {
 					<p className="mt-4 text-base leading-8 text-[color:var(--muted-strong)]">
 						Worry without information becomes conflict — between
 						siblings, and with the parent you&rsquo;re trying to
-						protect. A physician&rsquo;s assessment replaces guessing
+						protect. A physician-led assessment replaces guessing
 						with answers your whole family can stand behind: how Mom
 						or Dad is really doing, what the home needs, and whether
 						it&rsquo;s time to talk about something more.
@@ -189,7 +189,7 @@ export function LandingPage() {
 			<section className="warm-panel rounded-xl p-8 sm:p-12">
 				<div className="mx-auto max-w-3xl space-y-5 text-center">
 					<p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--accent-strong)]">
-						Who you&rsquo;ll be working with
+						Who leads HomeLongevityMD
 					</p>
 					<h2 className="font-display-serif text-3xl leading-tight text-[color:var(--navy)]">
 						Scott Haughawout, DO
@@ -202,7 +202,8 @@ export function LandingPage() {
 						medicine, and patient-centered care to HomeLongevityMD —
 						applying that clinical foundation to help older adults
 						and their families plan for safer, more independent
-						lives at home.
+						lives at home. Every assessment follows his clinical
+						methodology and is reviewed under his direction.
 					</p>
 				</div>
 			</section>
