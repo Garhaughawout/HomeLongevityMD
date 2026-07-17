@@ -49,3 +49,29 @@ export async function logout() {
 	await supabase.auth.signOut();
 	redirect("/login");
 }
+
+export type ResetRequestState = {
+	status: "idle" | "sent" | "error";
+	message?: string;
+};
+
+export async function requestPasswordReset(
+	_previousState: ResetRequestState,
+	formData: FormData
+): Promise<ResetRequestState> {
+	const email = String(formData.get("email") ?? "").trim();
+
+	if (!email || !email.includes("@")) {
+		return { status: "error", message: "Enter a valid email address." };
+	}
+
+	const supabase = createServerSupabaseClient();
+	await supabase.auth.resetPasswordForEmail(email);
+
+	// Always report success — don't reveal whether the account exists
+	return {
+		status: "sent",
+		message:
+			"If an account exists for that email, a reset link is on its way. The link expires after one hour.",
+	};
+}
