@@ -1,14 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { createServerSupabaseClient } from "@/services/supabase/server";
+import { getSupabaseEnvironment } from "@/lib/env";
+import type { Database } from "@/types/database";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth email landing route.
 //
 // Supabase's invite and password-reset emails link here (see the custom email
 // templates in the dashboard: {{ .SiteURL }}/auth/confirm?token_hash=...&type=...).
-// We verify the one-time token server-side, which establishes a session
-// cookie, then forward the user to the set-password page.
+// We verify the one-time token server-side, which establishes a session, then
+// forward the user to the set-password page.
+//
+// The session cookies are written directly onto the redirect response we
+// return — cookies set via the request-scoped store don't reliably attach to
+// a returned redirect in route handlers, which silently drops the session.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ALLOWED_TYPES: EmailOtpType[] = ["invite", "recovery", "email", "signup"];
@@ -22,20 +28,39 @@ export async function GET(request: NextRequest) {
 	// Only allow same-site relative redirects
 	const safeNext = nextPath.startsWith("/") ? nextPath : "/update-password";
 
-	if (tokenHash && type && ALLOWED_TYPES.includes(type)) {
-		const supabase = createServerSupabaseClient();
-		const { error } = await supabase.auth.verifyOtp({
-			type,
-			token_hash: tokenHash,
-		});
+	const failureUrl = new URL("/login", request.url);
+	failureUrl.searchParams.set("auth_error", "link_invalid");
 
-		if (!error) {
-			return NextResponse.redirect(new URL(safeNext, request.url));
-		}
+	if (!tokenHash || !type || !ALLOWED_TYPES.includes(type)) {
+		return NextResponse.redirect(failureUrl);
 	}
 
-	// Invalid or expired link — send to login with a hint
-	const loginUrl = new URL("/login", request.url);
-	loginUrl.searchParams.set("auth_error", "link_invalid");
-	return NextResponse.redirect(loginUrl);
+	// Build the success redirect up front and bind the Supabase client's
+	// cookie writes to it, so the session survives the redirect.
+	const successResponse = NextResponse.redirect(new URL(safeNext, request.url));
+
+	const { url, anonKey } = getSupabaseEnvironment();
+	const supabase = createServerClient<Database>(url, anonKey, {
+		cookies: {
+			getAll() {
+				return request.cookies.getAll();
+			},
+			setAll(cookiesToSet) {
+				cookiesToSet.forEach(({ name, value, options }) => {
+					successResponse.cookies.set(name, value, options);
+				});
+			},
+		},
+	});
+
+	const { error } = await supabase.auth.verifyOtp({
+		type,
+		token_hash: tokenHash,
+	});
+
+	if (error) {
+		return NextResponse.redirect(failureUrl);
+	}
+
+	return successResponse;
 }
